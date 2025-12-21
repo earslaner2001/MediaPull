@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Yükleniyor...</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    
+    body {
+      font-family: 'Share Tech Mono', monospace;
+      background: rgba(20, 20, 20, 0.95);
+      color: #ff4c4c;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+      text-shadow: 0 0 10px #ff4c4c;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .loader {
+      border: 4px solid #333;
+      border-top: 4px solid #ff0000;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    #progress {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ffaa00;
+    }
+
+    .progress-bar {
+      width: 300px;
+      height: 20px;
+      background-color: #222;
+      border-radius: 10px;
+      margin: 15px auto;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0000, #ff6600);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <h2>🚀 Arslaner Download Express</h2>
+  <div class="loader"></div>
+  <div id="status">İlk kurulum yapılıyor...</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div id="progress">0%</div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    ipcRenderer.on('download-status', (event, message) => {
+      document.getElementById('status').innerText = message;
+    });
+
+    ipcRenderer.on('download-progress', (event, data) => {
+      const progressText = `${data.tool}: ${data.progress}%`;
+      document.getElementById('progress').innerText = progressText;
+      document.getElementById('progressFill').style.width = data.progress + '%';
+    });
+  </script>
+</body>
+</html>

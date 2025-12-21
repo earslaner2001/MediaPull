@@ -1,13 +1,17 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const axios = require('axios');
 const { downloadFile } = require('./index');
+const BinariesManager = require('./binaries-manager');
+
+let mainWindow;
+const binariesManager = new BinariesManager();
 
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 600,
     height: 600,
     webPreferences: {
@@ -17,10 +21,60 @@ function createWindow() {
     }
   });
 
-  win.loadFile('index.html');
+  mainWindow.loadFile('index.html');
 }
 
-app.whenReady().then(() => {
+async function checkAndDownloadBinaries() {
+  const status = await binariesManager.ensureBinariesExist();
+  
+  if (status.needsDownload) {
+    const loadingWin = new BrowserWindow({
+      width: 400,
+      height: 250,
+      frame: false,
+      transparent: true,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false
+      }
+    });
+
+    loadingWin.loadFile('loading.html');
+
+    try {
+      if (!status.ytdlpExists) {
+        loadingWin.webContents.send('download-status', 'yt-dlp indiriliyor...');
+        await binariesManager.downloadYtDlp((progress) => {
+          loadingWin.webContents.send('download-progress', { tool: 'yt-dlp', progress });
+        });
+      }
+
+      if (!status.ffmpegExists) {
+        loadingWin.webContents.send('download-status', 'FFmpeg indiriliyor...');
+        await binariesManager.downloadFfmpeg((progress) => {
+          loadingWin.webContents.send('download-progress', { tool: 'ffmpeg', progress });
+        });
+      }
+
+      const verified = await binariesManager.verifyBinaries();
+      if (verified) {
+        loadingWin.webContents.send('download-status', '✅ Hazır!');
+        setTimeout(() => {
+          loadingWin.close();
+        }, 1000);
+      } else {
+        throw new Error('Binary doğrulama başarısız');
+      }
+    } catch (error) {
+      loadingWin.close();
+      dialog.showErrorBox('Hata', 'Gerekli araçlar indirilemedi: ' + error.message);
+      app.quit();
+    }
+  }
+}
+
+app.whenReady().then(async () => {
+  await checkAndDownloadBinaries();
   createWindow();
 
   ipcMain.on('start-download', async (event, url, filename) => {
@@ -70,8 +124,8 @@ app.whenReady().then(() => {
     }
 
     const outputPath = path.join(downloadsDir, filename);
-    const ytDlpPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'yt-dlp.exe');
-    const ffmpegPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'ffmpeg.exe');
+    const ytDlpPath = binariesManager.getYtDlpPath();
+    const ffmpegPath = binariesManager.getFfmpegPath();
 
     const command = `"${ytDlpPath}" --ffmpeg-location "${ffmpegPath}" -f "bv*[ext=mp4][height=1080]+ba[ext=m4a]/b[ext=mp4]" -o "${outputPath}" "${url}"`;
 
