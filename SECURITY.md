@@ -13,6 +13,6 @@ Tamamen istemci taraflıdır, indirdiğiniz şey doğrudan YouTube'dan alınır,
 ## 📣 Güvenlik Açığı Bildirme
 
 Potansiyel bir güvenlik açığı bulduysanız veya bir sorun fark ettiyseniz:  
-📧 **earslaner2001@gmail.com** adresine ulaşabilirsiniz.  
+📧 **earslaner2001@hotmail.com** adresine ulaşabilirsiniz.  
 Dürüst uyarı yapan herkesin emeğine saygı duyarım.  
 Açığı doğruladıktan sonra makul süre içinde yama yayımlanır.
