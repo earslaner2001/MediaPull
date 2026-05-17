@@ -5,7 +5,7 @@ const axios = require('axios');
 const ProgressBar = require('progress');
 
 async function downloadFile(url, filename) {
-  const downloadsDir = path.join(os.homedir(), 'Downloads', 'ArslanerDownloads');
+  const downloadsDir = path.join(os.homedir(), 'Downloads', 'MediaPullDownloads');
   if (!fs.existsSync(downloadsDir)) {
     fs.mkdirSync(downloadsDir, { recursive: true });
   }

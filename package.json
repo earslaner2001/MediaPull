@@ -1,8 +1,8 @@
 {
-  "name": "arslaner-download-express",
+  "name": "mediapull",
   "version": "1.2.1",
-  "description": "Emirhan Arslaner'in IDM alternatifi",
-  "author": "Emirhan Arslaner",
+  "description": "Twitter, YouTube ve desteklenen kaynaklardan medya indirme.",
+  "author": "MediaPull",
   "main": "main.js",
   "scripts": {
     "clean": "rimraf dist",
@@ -10,8 +10,8 @@
     "start": "electron ."
   },
   "build": {
-    "appId": "com.arslaner.downloader",
-    "productName": "Arslaner Download Express",
+    "appId": "com.mediapull.app",
+    "productName": "MediaPull",
     "directories": {
       "output": "dist"
     },
@@ -32,7 +32,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Arslaner Download Express",
+      "shortcutName": "MediaPull",
       "include": "uninstall.nsh",
       "deleteAppDataOnUninstall": true
     },

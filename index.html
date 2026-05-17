@@ -3,25 +3,45 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Arslaner Download Express</title>
+  <title>MediaPull</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: 'Share Tech Mono', monospace;
-      background: url('https://i.pinimg.com/originals/06/60/ef/0660efe82fa3da42ed56eef013171835.gif') no-repeat center center fixed;
+      background:
+        linear-gradient(rgba(12, 12, 14, 0.93), rgba(12, 12, 14, 0.93)),
+        url('https://i.pinimg.com/originals/06/60/ef/0660efe82fa3da42ed56eef013171835.gif') no-repeat center center fixed;
       background-size: cover;
       color: #ff4c4c;
-      padding: 40px;
-      max-width: 500px;
-      margin: auto;
+      padding: 14px 18px 16px;
+      max-width: 100%;
+      margin: 0 auto;
       text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
     }
 
-    h2,
+    h2 {
+      font-size: 1.15rem;
+      margin: 0 0 6px;
+    }
+
     h3 {
+      font-size: 0.95rem;
+      margin: 0 0 4px;
       color: #ff4c4c;
-      margin-bottom: 10px;
     }
 
     input,
@@ -29,17 +49,16 @@
     button {
       display: block;
       width: 100%;
-      margin-top: 15px;
-      padding: 12px;
+      margin-top: 8px;
+      padding: 8px 10px;
       border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      box-sizing: border-box;
+      border-radius: 8px;
+      font-size: 14px;
     }
 
     input,
     select {
-      background-color: rgba(30, 30, 30, 0.8);
+      background-color: rgba(28, 28, 30, 0.95);
       color: #ffdddd;
     }
 
@@ -63,8 +82,8 @@
 
     progress {
       width: 100%;
-      height: 20px;
-      margin-top: 25px;
+      height: 14px;
+      margin-top: 12px;
       appearance: none;
     }
 
@@ -79,37 +98,39 @@
     }
 
     #status {
-      margin-top: 10px;
+      margin: 6px 0 0;
+      font-size: 13px;
+      line-height: 1.35;
       font-weight: bold;
       color: #fff;
       text-shadow: 0 0 5px red, 0 0 10px #ff4444;
+      word-break: break-word;
     }
 
     hr {
       border: none;
       height: 1px;
       background-color: #ff4444;
-      margin: 30px 0;
+      margin: 14px 0;
     }
   </style>
 </head>
 
 <body>
-  <h2>📥 Arslaner Download Express</h2>
-  <input type="text" id="url" placeholder="İndirme linkini buraya gir" />
-  <input type="text" id="filename" placeholder="Dosya adını yaz (örnek.zip)" />
-  <button onclick="startDownload()">Dosya İndir</button>
+  <h2>MediaPull</h2>
+  <h3>Twitter / X Video İndir</h3>
+  <input type="text" id="twurl" placeholder="Tweet veya video bağlantısını yapıştır (twitter.com / x.com)" />
+  <button type="button" onclick="playClick(); downloadTwitter()">Twitter / X videosunu indir</button>
 
   <hr />
-  <h3>📺 YouTube Video İndir</h3>
-  <input type="text" id="yturl" placeholder="YouTube linkini veya başlık yaz" />
-  <input type="text" id="ytfilename" placeholder="Dosya adı (örnek.mp4)" />
+  <h3>YouTube Video İndir</h3>
+  <input type="text" id="yturl" placeholder="YouTube video linkini yapıştır" />
   <select id="format">
     <option value="bestvideo[height<=1080]+bestaudio/best[height<=1080]">1080p MP4 (video + ses)</option>
     <option value="bestaudio">Sadece Ses (MP3)</option>
     <option value="best">Otomatik En İyi Kalite</option>
   </select>
-  <button onclick="downloadYT()">YouTube'dan İndir</button>
+  <button type="button" onclick="playClick(); downloadYT()">YouTube'dan İndir</button>
 
   <progress id="progressBar" value="0" max="100"></progress>
   <p id="status"></p>
@@ -117,28 +138,79 @@
   <script>
     const { ipcRenderer } = require('electron');
 
-    function startDownload() {
-      const url = document.getElementById('url').value;
-      const filename = document.getElementById('filename').value;
-      if (!url.startsWith("http")) {
-        document.getElementById('status').innerText = "❌ Hatalı link! Lütfen geçerli bir link gir.";
+    function assetUrl(relPath) {
+      return new URL(relPath, window.location.href).href;
+    }
+
+    const sfxClick = new Audio(assetUrl('assets/Web Button Click.mp3'));
+    const sfxSuccess = new Audio(assetUrl('assets/download succes.mp3'));
+    sfxClick.preload = 'auto';
+    sfxSuccess.preload = 'auto';
+
+    function playClick() {
+      sfxClick.currentTime = 0;
+      void sfxClick.play().catch(() => {});
+    }
+
+    function playSuccess() {
+      sfxSuccess.currentTime = 0;
+      void sfxSuccess.play().catch(() => {});
+    }
+
+    function isTwitterOrXUrl(raw) {
+      try {
+        const u = new URL(raw.trim());
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+        const h = u.hostname.toLowerCase();
+        return h === 'twitter.com' || h === 'www.twitter.com' || h === 'mobile.twitter.com' ||
+          h === 'x.com' || h === 'www.x.com';
+      } catch {
+        return false;
+      }
+    }
+
+    const twitterBestFormat = 'bestvideo+bestaudio/best';
+
+    function downloadTwitter() {
+      const url = document.getElementById('twurl').value.trim();
+      if (!url || !isTwitterOrXUrl(url)) {
+        document.getElementById('status').innerText = 'Geçerli bir Twitter veya X bağlantısı gir.';
         return;
       }
-      document.getElementById('status').innerText = "İndirme başladı...";
+      document.getElementById('status').innerText = 'Twitter / X indirmesi başladı (en yüksek kalite)...';
       document.getElementById('progressBar').value = 0;
-      ipcRenderer.send('start-download', url, filename);
+      ipcRenderer.send('start-ytdlp', url, twitterBestFormat);
+    }
+
+    function isYoutubeUrl(raw) {
+      try {
+        const u = new URL(raw.trim());
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+        const h = u.hostname.toLowerCase();
+        return h === 'youtube.com' || h === 'www.youtube.com' || h === 'm.youtube.com' ||
+          h === 'music.youtube.com' || h === 'youtu.be' || h.endsWith('.youtube.com');
+      } catch {
+        return false;
+      }
     }
 
     function downloadYT() {
-      const yturl = document.getElementById('yturl').value;
-      const searchURL = yturl.startsWith("http") ? yturl : `ytsearch:${yturl}`;
-      const filename = document.getElementById('ytfilename').value;
+      const yturl = document.getElementById('yturl').value.trim();
       const format = document.getElementById('format').value;
 
-      document.getElementById('status').innerText = "YouTube indirme başladı...";
+      if (!yturl) {
+        document.getElementById('status').innerText = 'Link yok.';
+        return;
+      }
+      if (!isYoutubeUrl(yturl)) {
+        document.getElementById('status').innerText = 'Geçerli bir YouTube linki gir.';
+        return;
+      }
+
+      document.getElementById('status').innerText = 'YouTube indirme başladı...';
       document.getElementById('progressBar').value = 0;
 
-      ipcRenderer.send('start-ytdlp', searchURL, filename, format);
+      ipcRenderer.send('start-ytdlp', yturl, format);
     }
 
     ipcRenderer.on('download-progress', (event, percent) => {
@@ -147,12 +219,13 @@
     });
 
     ipcRenderer.on('download-complete', (event, file) => {
-      document.getElementById('status').innerText = `✅ ${file} indirildi!`;
+      document.getElementById('status').innerText = `${file} indirildi.`;
       document.getElementById('progressBar').value = 100;
+      playSuccess();
     });
 
     ipcRenderer.on('download-error', (event, message) => {
-      document.getElementById('status').innerText = `❌ Hata: ${message}`;
+      document.getElementById('status').innerText = `Hata: ${message}`;
     });
   </script>
 </body>
