@@ -7,6 +7,7 @@ const BinariesManager = require('./binaries-manager');
 
 let mainWindow;
 const binariesManager = new BinariesManager();
+const APP_SIZE = { width: 540, height: 720, minWidth: 480, minHeight: 640 };
 
 function isTwitterOrXUrl(url) {
   try {
@@ -38,10 +39,10 @@ function extractErrorMessage(log) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 540,
-    height: 720,
-    minWidth: 480,
-    minHeight: 640,
+    width: APP_SIZE.width,
+    height: APP_SIZE.height,
+    minWidth: APP_SIZE.minWidth,
+    minHeight: APP_SIZE.minHeight,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
