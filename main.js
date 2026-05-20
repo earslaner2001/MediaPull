@@ -8,6 +8,34 @@ const BinariesManager = require('./binaries-manager');
 let mainWindow;
 const binariesManager = new BinariesManager();
 
+function isTwitterOrXUrl(url) {
+  try {
+    const h = new URL(url.trim()).hostname.toLowerCase();
+    return h === 'twitter.com' || h === 'www.twitter.com' || h === 'mobile.twitter.com' ||
+      h === 'x.com' || h === 'www.x.com';
+  } catch {
+    return false;
+  }
+}
+
+function buildYtDlpArgs(ffmpegPath, outputTemplate) {
+  return [
+    '--ffmpeg-location', ffmpegPath,
+    '--windows-filenames',
+    '--remote-components', 'ejs:github',
+    '--js-runtimes', `node:${process.execPath}`,
+    '-o', outputTemplate
+  ];
+}
+
+function extractErrorMessage(log) {
+  const errors = log.split('\n').filter((line) => /^\s*ERROR:/i.test(line));
+  if (errors.length) {
+    return errors.map((line) => line.replace(/^\s*ERROR:\s*/i, '')).join(' ');
+  }
+  return log.trim().split('\n').filter(Boolean).slice(-3).join(' ');
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 540,
@@ -93,22 +121,27 @@ app.whenReady().then(async () => {
     const ytDlpPath = binariesManager.getYtDlpPath();
     const ffmpegPath = binariesManager.getFfmpegPath();
 
-    const args = ['--ffmpeg-location', ffmpegPath, '-o', outputTemplate];
+    const urlTrimmed = url.trim();
+    const args = buildYtDlpArgs(ffmpegPath, outputTemplate);
+
     if (format === 'bestaudio') {
       args.push('-f', 'bestaudio', '-x', '--audio-format', 'mp3');
+    } else if (isTwitterOrXUrl(urlTrimmed)) {
+      args.push(
+        '-f', 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
+        '--merge-output-format', 'mp4'
+      );
     } else {
       args.push('-f', format, '--merge-output-format', 'mp4');
-      // YouTube vb. sesi çoğu zaman Opus gelir; WMP uyumu için birleştirirken AAC'ye çevir
-      args.push(
-        '--postprocessor-args',
-        'Merger+ffmpeg_i:-c:v copy -c:a aac -b:a 192k -movflags +faststart'
-      );
     }
-    args.push(url.trim());
+    args.push(urlTrimmed);
 
     console.log('YT-DLP:', ytDlpPath, args.join(' '));
 
-    const proc = spawn(ytDlpPath, args, { windowsHide: true });
+    const proc = spawn(ytDlpPath, args, {
+      windowsHide: true,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
+    });
 
     let stderrAcc = '';
 
@@ -151,7 +184,7 @@ app.whenReady().then(async () => {
         const label = extractSavedLabel(stderrAcc) || 'Dosya';
         event.sender.send('download-complete', label);
       } else {
-        const errTail = stderrAcc.trim().split('\n').filter(Boolean).slice(-3).join(' ');
+        const errTail = extractErrorMessage(stderrAcc);
         event.sender.send(
           'download-error',
           errTail || `yt-dlp çıkış kodu: ${code}`
