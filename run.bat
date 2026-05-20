@@ -2,41 +2,39 @@
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-rem Node bazen Explorer'dan calistirilinca PATH'te olmaz; bilinen dizinler eklenir
 set "PATH=%PATH%;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LOCALAPPDATA%\Programs;%APPDATA%\npm"
 
+rem Sistem NODE_OPTIONS (openssl-legacy-provider vb.) Electron ile uyumsuz
 set "NODE_OPTIONS="
 
 chcp 65001 >nul 2>&1
 
 echo ============================================
-echo  MediaPull - setup build
+echo  MediaPull - gelistirici calistirma
 echo ============================================
 echo.
 
 where npm >nul 2>&1
 if errorlevel 1 (
-  echo ERROR: npm not found. Install Node.js LTS and retry.
+  echo HATA: npm bulunamadi. Node.js LTS kurulu olmali.
   goto fail
 )
 
-echo [1/2] npm install ...
-call npm install
-if errorlevel 1 goto fail
+if not exist "node_modules\" (
+  echo node_modules yok, npm install calistiriliyor...
+  call npm install
+  if errorlevel 1 goto fail
+  echo.
+)
 
+echo Uygulama aciliyor... Pencereyi kapatinca veya Ctrl+C ile cikilir.
 echo.
-echo [2/2] electron-builder ...
-call npm run build
+call npm start
 if errorlevel 1 goto fail
-
-echo.
-echo Done. Output folder: "%~dp0dist"
-echo.
-pause
 exit /b 0
 
 :fail
 echo.
-echo Build failed.
+echo Calistirma basarisiz.
 pause
 exit /b 1

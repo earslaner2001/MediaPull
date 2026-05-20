@@ -27,10 +27,47 @@
         url('https://i.pinimg.com/originals/06/60/ef/0660efe82fa3da42ed56eef013171835.gif') no-repeat center center fixed;
       background-size: cover;
       color: #ff4c4c;
-      padding: 14px 18px 16px;
+      padding: 14px 18px 40px;
       max-width: 100%;
       margin: 0 auto;
       text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
+      position: relative;
+    }
+
+    .app-corner {
+      position: fixed;
+      right: 14px;
+      bottom: 10px;
+      z-index: 20;
+    }
+
+    .corner-link {
+      display: inline;
+      width: auto;
+      margin: 0;
+      padding: 0;
+      font-size: 11px;
+      font-weight: normal;
+      letter-spacing: 0.02em;
+      background: none;
+      color: rgba(255, 180, 180, 0.55);
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      text-shadow: none;
+      box-shadow: none;
+      transition: color 0.15s;
+    }
+
+    .corner-link:hover {
+      color: rgba(255, 100, 100, 0.95);
+      transform: none;
+      box-shadow: none;
+      text-decoration: underline;
+    }
+
+    .corner-link:active {
+      transform: none;
     }
 
     h2 {
@@ -135,8 +172,17 @@
   <progress id="progressBar" value="0" max="100"></progress>
   <p id="status"></p>
 
+  <footer class="app-corner">
+    <button type="button" class="corner-link" onclick="openSite()">(c) 2026 MediaPull · site</button>
+  </footer>
+
   <script>
-    const { ipcRenderer } = require('electron');
+    const { ipcRenderer, shell } = require('electron');
+    const SITE_URL = 'https://media-pull.vercel.app/';
+
+    function openSite() {
+      shell.openExternal(SITE_URL);
+    }
 
     function assetUrl(relPath) {
       return new URL(relPath, window.location.href).href;
