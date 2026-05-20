@@ -98,6 +98,11 @@ app.whenReady().then(async () => {
       args.push('-f', 'bestaudio', '-x', '--audio-format', 'mp3');
     } else {
       args.push('-f', format, '--merge-output-format', 'mp4');
+      // YouTube vb. sesi çoğu zaman Opus gelir; WMP uyumu için birleştirirken AAC'ye çevir
+      args.push(
+        '--postprocessor-args',
+        'Merger+ffmpeg_i:-c:v copy -c:a aac -b:a 192k -movflags +faststart'
+      );
     }
     args.push(url.trim());
 

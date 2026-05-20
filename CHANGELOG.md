@@ -1,5 +1,17 @@
 # Değişiklik günlüğü
 
+## [2.0.1] — 2026-05-20
+
+### Düzeltildi
+
+- **MP4 ses uyumluluğu:** YouTube ve Twitter / X video indirmelerinde ses, birleştirme sırasında **Opus** yerine **AAC** olarak kodlanır. Windows Media Player ve varsayılan oynatıcılarda “Opus biçimi desteklenmiyor” uyarısı giderildi (kullanıcı geri bildirimi).
+
+### Not
+
+- Bu düzeltme yalnızca **yeni indirilen** dosyalar için geçerlidir; önceki sürümle indirilen MP4’ler yeniden indirilmelidir.
+
+[2.0.1]: https://github.com/earslaner2001/Arslaner-Download-Express/releases/tag/v2.0.1
+
 ## [2.0.0] — 2026-05-17
 
 ### Özet
