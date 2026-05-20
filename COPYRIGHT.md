@@ -1,7 +1,7 @@
 # Telif Hakkı Bildirimi
 
 **MediaPull**  
-Sürüm: 2.0.1 ve sonrası  
+Sürüm: 2.0.4 ve sonrası  
 Son güncelleme: 17 Mayıs 2026
 
 ---

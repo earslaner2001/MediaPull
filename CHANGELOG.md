@@ -1,5 +1,23 @@
 # Değişiklik günlüğü
 
+## [2.0.4] — 2026-05-20
+
+### Eklenenler
+
+- Lansman sitesi (`website/`, [media-pull.vercel.app](https://media-pull.vercel.app/)).
+- Sağ alt köşe `(c) 2026 MediaPull · site` linki — tarayıcıda açılır.
+- `run.bat` (geliştirici test), `website/start.bat` (site önizleme).
+
+### Düzeltildi
+
+- `run.bat` / `build-setup.bat`: `NODE_OPTIONS=--openssl-legacy-provider` Electron ile çakışması giderildi.
+
+### Değişenler
+
+- Site artık uygulama içinde webview ile açılmıyor; yalnızca harici tarayıcı.
+
+[2.0.4]: https://github.com/earslaner2001/Arslaner-Download-Express/releases/tag/v2.0.4
+
 ## [2.0.3] — 2026-05-20
 
 ### Düzeltildi
