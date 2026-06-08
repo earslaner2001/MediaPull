@@ -5,6 +5,14 @@ const fs = require('fs');
 const os = require('os');
 const BinariesManager = require('./binaries-manager');
 
+if (process.env.MEDIAPULL_DEV === '1') {
+  require('electron-reload')(__dirname, {
+    electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
+    awaitWriteFinish: true,
+    ignored: /node_modules|dist|binaries|\.git/
+  });
+}
+
 let mainWindow;
 const binariesManager = new BinariesManager();
 const APP_SIZE = { width: 540, height: 720, minWidth: 480, minHeight: 640 };
@@ -145,35 +153,73 @@ app.whenReady().then(async () => {
     });
 
     let stderrAcc = '';
+    let lastPercent = -1;  // geri gidişi önlemek için
+    let streamIndex = 0;   // kaçıncı akış indiriliyor (video=0, ses=1)
 
-    function trySendProgress(chunk) {
-      const match = chunk.match(/(\d{1,3}\.\d)%/);
-      if (match) {
-        event.sender.send('download-progress', parseFloat(match[1]));
+    const RE_PROGRESS      = /(\d{1,3}\.\d+)%\s+of\s+~?\s*([\d.]+\s*\S+)\s+at\s+([\d.]+\s*\S+)(?:\s+ETA\s+(\d{2}:\d{2}))?/;
+    const RE_PROGRESS_DONE = /100%\s+of\s+~?\s*([\d.]+\s*\S+)/;
+
+    function parseAndSend(chunk) {
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        const m = line.match(RE_PROGRESS);
+        if (m) {
+          const pct = parseFloat(m[1]);
+          // Yüzde önceki değerden küçükse yeni bir akış başladı (ses/video)
+          if (pct < lastPercent - 2) {
+            streamIndex++;
+            event.sender.send('download-stream', streamIndex);
+          }
+          lastPercent = pct;
+          event.sender.send('download-progress', {
+            percent: pct,
+            size: m[2].trim(),
+            speed: m[3].trim(),
+            eta: m[4] ? m[4].trim() : null,
+            stream: streamIndex
+          });
+          continue;
+        }
+        if (RE_PROGRESS_DONE.test(line)) {
+          lastPercent = 100;
+          event.sender.send('download-progress', { percent: 100, size: null, speed: null, eta: null, stream: streamIndex });
+          continue;
+        }
+        if (/\[Merger\]/.test(line)) {
+          event.sender.send('download-phase', 'merging');
+          continue;
+        }
+        if (/\[ffmpeg\]/.test(line)) {
+          event.sender.send('download-phase', 'converting');
+          continue;
+        }
+        if (/\[download\]\s+Destination:/.test(line)) {
+          event.sender.send('download-phase', 'downloading');
+          continue;
+        }
+        if (/\[youtube\]|\[twitter\]|\[x\]|\[info\]|\[generic\]/i.test(line)) {
+          event.sender.send('download-phase', 'analyzing');
+        }
       }
     }
 
     function extractSavedLabel(log) {
       const merger = log.match(/\[Merger\] Merging formats into "(.+?)"/);
-      if (merger) {
-        return path.basename(merger[1]);
-      }
+      if (merger) return path.basename(merger[1]);
       const destLines = [...log.matchAll(/\[download\] Destination:\s*(.+)/g)];
-      if (destLines.length) {
-        return path.basename(destLines[destLines.length - 1][1].trim());
-      }
+      if (destLines.length) return path.basename(destLines[destLines.length - 1][1].trim());
       return null;
     }
 
-    proc.stdout.on('data', (data) => {
-      trySendProgress(data.toString());
-    });
+    event.sender.send('download-phase', 'analyzing');
+
+    proc.stdout.on('data', (data) => { parseAndSend(data.toString()); });
 
     proc.stderr.on('data', (data) => {
       const text = data.toString();
       stderrAcc += text;
       console.error('yt-dlp stderr:', text);
-      trySendProgress(text);
+      parseAndSend(text);
     });
 
     proc.on('error', (err) => {
