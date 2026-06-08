@@ -7,14 +7,9 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { box-sizing: border-box; }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
@@ -24,66 +19,20 @@
       font-family: 'Share Tech Mono', monospace;
       background:
         linear-gradient(rgba(12, 12, 14, 0.93), rgba(12, 12, 14, 0.93)),
-        url('https://i.pinimg.com/originals/06/60/ef/0660efe82fa3da42ed56eef013171835.gif') no-repeat center center fixed;
+        url('https://i.pinimg.com/originals/06/60/ef/0660efe82fa3da42ed56eef013171835.gif')
+        no-repeat center center fixed;
       background-size: cover;
       color: #ff4c4c;
       padding: 14px 18px 40px;
       max-width: 100%;
-      margin: 0 auto;
-      text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
       position: relative;
+      text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
     }
 
-    .app-corner {
-      position: fixed;
-      right: 14px;
-      bottom: 10px;
-      z-index: 20;
-    }
+    h2 { font-size: 1.15rem; margin: 0 0 6px; }
+    h3 { font-size: 0.95rem; margin: 0 0 4px; color: #ff4c4c; }
 
-    .corner-link {
-      display: inline;
-      width: auto;
-      margin: 0;
-      padding: 0;
-      font-size: 11px;
-      font-weight: normal;
-      letter-spacing: 0.02em;
-      background: none;
-      color: rgba(255, 180, 180, 0.55);
-      border: none;
-      border-radius: 0;
-      cursor: pointer;
-      text-shadow: none;
-      box-shadow: none;
-      transition: color 0.15s;
-    }
-
-    .corner-link:hover {
-      color: rgba(255, 100, 100, 0.95);
-      transform: none;
-      box-shadow: none;
-      text-decoration: underline;
-    }
-
-    .corner-link:active {
-      transform: none;
-    }
-
-    h2 {
-      font-size: 1.15rem;
-      margin: 0 0 6px;
-    }
-
-    h3 {
-      font-size: 0.95rem;
-      margin: 0 0 4px;
-      color: #ff4c4c;
-    }
-
-    input,
-    select,
-    button {
+    input, select, button {
       display: block;
       width: 100%;
       margin-top: 8px;
@@ -91,58 +40,49 @@
       border: none;
       border-radius: 8px;
       font-size: 14px;
+      font-family: inherit;
     }
 
-    input,
-    select {
+    input, select {
       background-color: rgba(28, 28, 30, 0.95);
       color: #ffdddd;
     }
 
-    button {
+    button.dl-btn {
       background: linear-gradient(135deg, #ff0000, #990000);
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: transform 0.1s ease-in-out, box-shadow 0.2s;
+      transition: transform 0.1s ease-in-out, box-shadow 0.2s, opacity 0.2s;
       text-shadow: 0 0 5px white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-
-    button:hover {
+    button.dl-btn:hover:not(:disabled) {
       transform: scale(1.03);
       box-shadow: 0 0 15px #ff0000a0;
     }
-
-    button:active {
-      transform: scale(0.97);
+    button.dl-btn:active:not(:disabled) { transform: scale(0.97); }
+    button.dl-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
     }
 
-    progress {
-      width: 100%;
+    /* spinner */
+    .spinner {
+      display: none;
+      width: 14px;
       height: 14px;
-      margin-top: 12px;
-      appearance: none;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
     }
-
-    progress::-webkit-progress-bar {
-      background-color: #222;
-      border-radius: 10px;
-    }
-
-    progress::-webkit-progress-value {
-      background-color: #ff0000;
-      border-radius: 10px;
-    }
-
-    #status {
-      margin: 6px 0 0;
-      font-size: 13px;
-      line-height: 1.35;
-      font-weight: bold;
-      color: #fff;
-      text-shadow: 0 0 5px red, 0 0 10px #ff4444;
-      word-break: break-word;
-    }
+    .spinner.visible { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     hr {
       border: none;
@@ -150,16 +90,149 @@
       background-color: #ff4444;
       margin: 14px 0;
     }
+
+    /* ── Progress alanı ── */
+    #dl-status {
+      margin: 8px 0 0;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 5px red, 0 0 10px #ff4444;
+      word-break: break-word;
+      min-height: 1.4em;
+    }
+    #dl-status:empty { min-height: 0; }
+    #dl-status.error { color: #ff6666; text-shadow: none; }
+    #dl-status.success { color: #88ffbb; text-shadow: 0 0 8px #00ff88; }
+
+    #dl-panel {
+      margin-top: 10px;
+      display: none;
+    }
+    #dl-panel.visible { display: block; }
+
+    .dl-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5px;
+      gap: 8px;
+    }
+
+    #dl-phase {
+      font-size: 12px;
+      color: #ffaaaa;
+      text-shadow: none;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #dl-percent {
+      font-size: 12px;
+      color: #ff8888;
+      text-shadow: none;
+      white-space: nowrap;
+    }
+
+    /* custom progress bar */
+    .bar-wrap {
+      width: 100%;
+      height: 12px;
+      background: #1a1a1a;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,68,68,0.3);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #cc0000, #ff4444);
+      border-radius: 999px;
+      /* Sadece ileri gidişte animasyon; geri dönüşte (yeni akış sıfırlaması) anında geçiş */
+      transition: width 0.35s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .bar-fill.no-transition {
+      transition: none;
+    }
+
+    /* şerit animasyonu */
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 12px,
+        rgba(255,255,255,0.07) 12px,
+        rgba(255,255,255,0.07) 24px
+      );
+      animation: stripe 1.2s linear infinite;
+    }
+    @keyframes stripe {
+      from { background-position: 0 0; }
+      to   { background-position: 48px 0; }
+    }
+
+    .dl-metrics {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .metric {
+      font-size: 11px;
+      color: rgba(255, 200, 200, 0.7);
+      text-shadow: none;
+    }
+    .metric span {
+      color: #ffdddd;
+    }
+
+
+    /* köşe linki */
+    .app-corner {
+      position: fixed;
+      right: 14px;
+      bottom: 10px;
+      z-index: 20;
+    }
+    .corner-link {
+      display: inline;
+      width: auto;
+      margin: 0; padding: 0;
+      font-size: 11px; font-weight: normal;
+      background: none; border: none; border-radius: 0;
+      color: rgba(255, 180, 180, 0.55);
+      cursor: pointer;
+      text-shadow: none; box-shadow: none;
+      transition: color 0.15s;
+    }
+    .corner-link:hover { color: rgba(255,100,100,0.95); text-decoration: underline; }
+    .corner-link:active, .corner-link:hover { transform: none; box-shadow: none; }
   </style>
 </head>
 
 <body>
   <h2>MediaPull</h2>
+
   <h3>Twitter / X Video İndir</h3>
-  <input type="text" id="twurl" placeholder="Tweet veya video bağlantısını yapıştır (twitter.com / x.com)" />
-  <button type="button" onclick="playClick(); downloadTwitter()">Twitter / X videosunu indir</button>
+  <input type="text" id="twurl" placeholder="Tweet veya video bağlantısını yapıştır" />
+  <button type="button" class="dl-btn" id="btnTw" onclick="playClick(); startDownloadTwitter()">
+    <span class="spinner" id="spnTw"></span>
+    <span id="lblTw">Twitter / X videosunu indir</span>
+  </button>
 
   <hr />
+
   <h3>YouTube Video İndir</h3>
   <input type="text" id="yturl" placeholder="YouTube video linkini yapıştır" />
   <select id="format">
@@ -167,10 +240,29 @@
     <option value="bestaudio">Sadece Ses (MP3)</option>
     <option value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio[ext=m4a]/best">Otomatik En İyi Kalite</option>
   </select>
-  <button type="button" onclick="playClick(); downloadYT()">YouTube'dan İndir</button>
+  <button type="button" class="dl-btn" id="btnYT" onclick="playClick(); startDownloadYT()">
+    <span class="spinner" id="spnYT"></span>
+    <span id="lblYT">YouTube'dan İndir</span>
+  </button>
 
-  <progress id="progressBar" value="0" max="100"></progress>
-  <p id="status"></p>
+  <!-- Hata / başarı mesajı (her zaman görünür) -->
+  <p id="dl-status"></p>
+
+  <!-- İlerleme paneli (yalnızca indirme başlayınca) -->
+  <div id="dl-panel">
+    <div class="dl-header">
+      <span id="dl-phase">Analiz ediliyor...</span>
+      <span id="dl-percent"></span>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-fill" id="barFill"></div>
+    </div>
+    <div class="dl-metrics">
+      <span class="metric" id="metSpeed" style="display:none">Hız: <span>—</span></span>
+      <span class="metric" id="metSize"  style="display:none">Boyut: <span>—</span></span>
+      <span class="metric" id="metEta"   style="display:none">Kalan: <span>—</span></span>
+    </div>
+  </div>
 
   <footer class="app-corner">
     <button type="button" class="corner-link" onclick="openSite()">(c) 2026 MediaPull · site</button>
@@ -180,52 +272,102 @@
     const { ipcRenderer, shell } = require('electron');
     const SITE_URL = 'https://media-pull.vercel.app/';
 
-    function openSite() {
-      shell.openExternal(SITE_URL);
-    }
-
-    function assetUrl(relPath) {
-      return new URL(relPath, window.location.href).href;
-    }
-
-    const sfxClick = new Audio(assetUrl('assets/Web Button Click.mp3'));
+    // ── Ses ──────────────────────────────────────────────
+    function assetUrl(p) { return new URL(p, window.location.href).href; }
+    const sfxClick   = new Audio(assetUrl('assets/Web Button Click.mp3'));
     const sfxSuccess = new Audio(assetUrl('assets/download succes.mp3'));
-    sfxClick.preload = 'auto';
-    sfxSuccess.preload = 'auto';
+    sfxClick.preload = sfxSuccess.preload = 'auto';
+    function playClick()   { sfxClick.currentTime   = 0; void sfxClick.play().catch(()=>{}); }
+    function playSuccess() { sfxSuccess.currentTime = 0; void sfxSuccess.play().catch(()=>{}); }
 
-    function playClick() {
-      sfxClick.currentTime = 0;
-      void sfxClick.play().catch(() => {});
+    // ── Site linki ───────────────────────────────────────
+    function openSite() { shell.openExternal(SITE_URL); }
+
+    // ── Buton yönetimi ───────────────────────────────────
+    let activeBtnId = null;
+
+    function lockBtn(btnId) {
+      activeBtnId = btnId;
+      ['btnTw','btnYT'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.disabled = true;
+      });
+      const lbl = document.getElementById(btnId === 'btnTw' ? 'lblTw' : 'lblYT');
+      const spn = document.getElementById(btnId === 'btnTw' ? 'spnTw' : 'spnYT');
+      lbl.textContent = 'İndiriliyor...';
+      spn.classList.add('visible');
     }
 
-    function playSuccess() {
-      sfxSuccess.currentTime = 0;
-      void sfxSuccess.play().catch(() => {});
+    function unlockBtns() {
+      ['btnTw','btnYT'].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
+      document.getElementById('lblTw').textContent = 'Twitter / X videosunu indir';
+      document.getElementById('lblYT').textContent = 'YouTube\'dan İndir';
+      document.getElementById('spnTw').classList.remove('visible');
+      document.getElementById('spnYT').classList.remove('visible');
+      activeBtnId = null;
     }
 
+    // ── Progress paneli ──────────────────────────────────
+    const PHASE_LABELS = {
+      analyzing:   'Analiz ediliyor...',
+      downloading: 'Video verisi alınıyor...',
+      merging:     'Video ve ses birleştiriliyor...',
+      converting:  'Dönüştürülüyor...',
+      done:        'İndirme tamamlandı!',
+    };
+
+    function showPanel() {
+      document.getElementById('dl-panel').classList.add('visible');
+    }
+
+    function setPhase(phase) {
+      document.getElementById('dl-phase').textContent = PHASE_LABELS[phase] ?? phase;
+    }
+
+    const STREAM_LABELS = ['Video indiriliyor...', 'Ses indiriliyor...'];
+
+    function setBar(percent, instant = false) {
+      const fill = document.getElementById('barFill');
+      if (instant) {
+        fill.classList.add('no-transition');
+        // Bir sonraki frame'de transition'ı geri aç
+        requestAnimationFrame(() => requestAnimationFrame(() => fill.classList.remove('no-transition')));
+      }
+      fill.style.width = Math.min(100, percent) + '%';
+      document.getElementById('dl-percent').textContent = percent < 100 ? `%${percent.toFixed(1)}` : '%100';
+    }
+
+    function setMetric(id, label, value) {
+      const el = document.getElementById(id);
+      if (!value) { el.style.display = 'none'; return; }
+      el.style.display = 'inline';
+      el.querySelector('span').textContent = value;
+    }
+
+    function setStatus(msg, type = '') {
+      const el = document.getElementById('dl-status');
+      el.textContent = msg;
+      el.className = type;
+    }
+
+    function resetPanel() {
+      setBar(0, true);
+      setPhase('analyzing');
+      document.getElementById('dl-percent').textContent = '';
+      setMetric('metSpeed', 'Hız', null);
+      setMetric('metSize',  'Boyut', null);
+      setMetric('metEta',   'Kalan', null);
+      setStatus('');
+    }
+
+    // ── URL doğrulama ────────────────────────────────────
     function isTwitterOrXUrl(raw) {
       try {
-        const u = new URL(raw.trim());
-        if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-        const h = u.hostname.toLowerCase();
-        return h === 'twitter.com' || h === 'www.twitter.com' || h === 'mobile.twitter.com' ||
-          h === 'x.com' || h === 'www.x.com';
-      } catch {
-        return false;
-      }
-    }
-
-    const twitterBestFormat = 'bestvideo+bestaudio/best';
-
-    function downloadTwitter() {
-      const url = document.getElementById('twurl').value.trim();
-      if (!url || !isTwitterOrXUrl(url)) {
-        document.getElementById('status').innerText = 'Geçerli bir Twitter veya X bağlantısı gir.';
-        return;
-      }
-      document.getElementById('status').innerText = 'Twitter / X indirmesi başladı (en yüksek kalite)...';
-      document.getElementById('progressBar').value = 0;
-      ipcRenderer.send('start-ytdlp', url, twitterBestFormat);
+        const h = new URL(raw.trim()).hostname.toLowerCase();
+        return ['twitter.com','www.twitter.com','mobile.twitter.com','x.com','www.x.com'].includes(h);
+      } catch { return false; }
     }
 
     function isYoutubeUrl(raw) {
@@ -233,45 +375,74 @@
         const u = new URL(raw.trim());
         if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
         const h = u.hostname.toLowerCase();
-        return h === 'youtube.com' || h === 'www.youtube.com' || h === 'm.youtube.com' ||
-          h === 'music.youtube.com' || h === 'youtu.be' || h.endsWith('.youtube.com');
-      } catch {
-        return false;
-      }
+        return ['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','youtu.be'].includes(h)
+          || h.endsWith('.youtube.com');
+      } catch { return false; }
     }
 
-    function downloadYT() {
-      const yturl = document.getElementById('yturl').value.trim();
+    // ── İndirme başlatıcılar ─────────────────────────────
+    function startDownloadTwitter() {
+      const url = document.getElementById('twurl').value.trim();
+      if (!url || !isTwitterOrXUrl(url)) {
+        setStatus('Geçerli bir Twitter veya X bağlantısı gir.', 'error');
+        return;
+      }
+      lockBtn('btnTw');
+      showPanel();
+      resetPanel();
+      ipcRenderer.send('start-ytdlp', url, 'bestvideo+bestaudio/best');
+    }
+
+    function startDownloadYT() {
+      const url    = document.getElementById('yturl').value.trim();
       const format = document.getElementById('format').value;
-
-      if (!yturl) {
-        document.getElementById('status').innerText = 'Link yok.';
-        return;
+      if (!url) {
+        setStatus('Link yok.', 'error'); return;
       }
-      if (!isYoutubeUrl(yturl)) {
-        document.getElementById('status').innerText = 'Geçerli bir YouTube linki gir.';
-        return;
+      if (!isYoutubeUrl(url)) {
+        setStatus('Geçerli bir YouTube linki gir.', 'error'); return;
       }
-
-      document.getElementById('status').innerText = 'YouTube indirme başladı...';
-      document.getElementById('progressBar').value = 0;
-
-      ipcRenderer.send('start-ytdlp', yturl, format);
+      lockBtn('btnYT');
+      showPanel();
+      resetPanel();
+      ipcRenderer.send('start-ytdlp', url, format);
     }
 
-    ipcRenderer.on('download-progress', (event, percent) => {
-      document.getElementById('progressBar').value = percent;
-      document.getElementById('status').innerText = `${percent}% indirildi...`;
+    // ── IPC olayları ─────────────────────────────────────
+    ipcRenderer.on('download-phase', (_e, phase) => {
+      setPhase(phase);
     });
 
-    ipcRenderer.on('download-complete', (event, file) => {
-      document.getElementById('status').innerText = `${file} indirildi.`;
-      document.getElementById('progressBar').value = 100;
+    ipcRenderer.on('download-stream', (_e, idx) => {
+      // Yeni akış başladı (ses) — bar'ı anlık sıfırla, glitch yok
+      setBar(0, true);
+      setPhase(STREAM_LABELS[idx] ?? 'İndiriliyor...');
+    });
+
+    ipcRenderer.on('download-progress', (_e, data) => {
+      if (typeof data === 'number') {
+        setBar(data);
+        return;
+      }
+      setBar(data.percent);
+      setMetric('metSpeed', 'Hız',   data.speed ?? null);
+      setMetric('metSize',  'Boyut', data.size  ?? null);
+      setMetric('metEta',   'Kalan', data.eta ? `${data.eta}` : null);
+    });
+
+    ipcRenderer.on('download-complete', (_e, file) => {
+      setBar(100);
+      setPhase('done');
+      setMetric('metSpeed', 'Hız', null);
+      setMetric('metEta',   'Kalan', null);
+      setStatus(`${file} indirildi.`, 'success');
+      unlockBtns();
       playSuccess();
     });
 
-    ipcRenderer.on('download-error', (event, message) => {
-      document.getElementById('status').innerText = `Hata: ${message}`;
+    ipcRenderer.on('download-error', (_e, message) => {
+      setStatus(`Hata: ${message}`, 'error');
+      unlockBtns();
     });
   </script>
 </body>

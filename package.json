@@ -1,13 +1,14 @@
 {
   "name": "mediapull",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Twitter, YouTube ve desteklenen kaynaklardan medya indirme.",
   "author": "MediaPull",
   "main": "main.js",
   "scripts": {
     "clean": "rimraf dist",
     "build": "npm run clean && electron-builder --win",
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "cross-env MEDIAPULL_DEV=1 electron ."
   },
   "build": {
     "appId": "com.mediapull.app",
@@ -40,8 +41,10 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "cross-env": "^10.1.0",
     "electron": "^28.3.3",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "electron-reload": "^2.0.0-alpha.1"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

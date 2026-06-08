@@ -1,16 +1,29 @@
 # Değişiklik günlüğü
 
+## [2.0.5] — 2026-06-08
+
+### Eklenenler — UX İyileştirmeleri
+
+- **Aşama göstergesi:** İndirme adımı dinamik olarak güncellenir.
+  - `Analiz ediliyor…` → `Video verisi alınıyor…` → `Video ve ses birleştiriliyor…` → `İndirme tamamlandı!`
+- **Anlık metrikler:** İlerleme çubuğunun altında hız (`4.2 MiB/s`), toplam boyut (`15.2 / 45.0 MiB`) ve kalan süre (`ETA 00:12`) gösterilir.
+- **Özel progress bar:** Hareketli şerit animasyonu, `width` transition ile akıcı ilerleme.
+- **Buton kilitleme / spinner:** İndir butonuna basılınca `disabled` + dönen ikon + "İndiriliyor…" metni; tamamlanınca serbest bırakılır.
+- **Hot reload:** `dev.bat` ile geliştirici modunda dosya değişince uygulama otomatik yeniden başlar (`electron-reload`).
+
+[2.0.5]: https://github.com/earslaner2001/Arslaner-Download-Express/releases/tag/v2.0.5
+
 ## [2.0.4] — 2026-05-20
 
 ### Eklenenler
 
 - Lansman sitesi (`website/`, [media-pull.vercel.app](https://media-pull.vercel.app/)).
 - Sağ alt köşe `(c) 2026 MediaPull · site` linki — tarayıcıda açılır.
-- `run.bat` (geliştirici test), `website/start.bat` (site önizleme).
+- `website/start.bat` (site önizleme).
 
 ### Düzeltildi
 
-- `run.bat` / `build-setup.bat`: `NODE_OPTIONS=--openssl-legacy-provider` Electron ile çakışması giderildi.
+- `build-setup.bat`: `NODE_OPTIONS=--openssl-legacy-provider` Electron ile çakışması giderildi.
 
 ### Değişenler
 
