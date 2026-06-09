@@ -7,8 +7,9 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "npm run clean && electron-builder --win",
-    "start": "electron .",
-    "dev": "cross-env MEDIAPULL_DEV=1 electron ."
+    "start": "node scripts/patch-icon.js && electron .",
+    "dev": "node scripts/patch-icon.js && cross-env MEDIAPULL_DEV=1 electron .",
+    "icon:dev": "node scripts/patch-icon.js"
   },
   "build": {
     "appId": "com.mediapull.app",
@@ -44,7 +45,8 @@
     "cross-env": "^10.1.0",
     "electron": "^28.3.3",
     "electron-builder": "^26.0.12",
-    "electron-reload": "^2.0.0-alpha.1"
+    "electron-reload": "^2.0.0-alpha.1",
+    "rcedit": "^5.0.2"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

@@ -4,6 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <title>MediaPull</title>
+  <link rel="icon" type="image/x-icon" href="icon.ico">
+  <link rel="icon" type="image/png" href="icon.png">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -12,7 +14,8 @@
     html, body {
       margin: 0;
       height: 100%;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     body {
@@ -23,7 +26,7 @@
         no-repeat center center fixed;
       background-size: cover;
       color: #ff4c4c;
-      padding: 14px 18px 40px;
+      padding: 14px 18px 48px;
       max-width: 100%;
       position: relative;
       text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
@@ -197,6 +200,123 @@
       color: #ffdddd;
     }
 
+    .dl-controls {
+      display: none;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .dl-controls.visible {
+      display: flex;
+    }
+
+    button.ctrl-btn {
+      flex: 1;
+      margin-top: 0;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 68, 68, 0.45);
+      background: rgba(30, 30, 30, 0.95);
+      color: #ffcccc;
+      text-shadow: none;
+      transition: background 0.15s, border-color 0.15s, opacity 0.2s;
+    }
+    button.ctrl-btn:hover:not(:disabled) {
+      background: rgba(50, 20, 20, 0.95);
+      border-color: rgba(255, 68, 68, 0.75);
+      transform: none;
+      box-shadow: none;
+    }
+    button.ctrl-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    button.ctrl-btn.stop {
+      border-color: rgba(255, 100, 100, 0.6);
+      color: #ffaaaa;
+    }
+
+    .bar-fill.paused::after {
+      animation-play-state: paused;
+    }
+
+    /* ── Log kutusu ── */
+    .log-section {
+      margin-top: 12px;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+
+    .log-title {
+      font-size: 11px;
+      color: rgba(255, 180, 180, 0.65);
+      text-shadow: none;
+    }
+
+    button.log-toggle {
+      display: inline-block;
+      width: auto;
+      margin: 0;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: normal;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 68, 68, 0.35);
+      background: rgba(20, 20, 20, 0.9);
+      color: rgba(255, 200, 200, 0.75);
+      cursor: pointer;
+      text-shadow: none;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    button.log-toggle:hover {
+      background: rgba(40, 20, 20, 0.95);
+      border-color: rgba(255, 68, 68, 0.6);
+      color: #ffcccc;
+      transform: none;
+      box-shadow: none;
+    }
+
+    #log-box {
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 68, 68, 0.35);
+      border-radius: 8px;
+      padding: 8px 10px;
+      height: 130px;
+      overflow-y: auto;
+      font-size: 11px;
+      color: rgba(255, 200, 200, 0.7);
+      text-shadow: none;
+      line-height: 1.55;
+      word-break: break-all;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,68,68,0.4) transparent;
+      transition: height 0.2s ease, padding 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+    }
+    #log-box.hidden {
+      height: 0;
+      padding: 0 10px;
+      overflow: hidden;
+      opacity: 0;
+      border-color: transparent;
+    }
+    #log-box::-webkit-scrollbar { width: 4px; }
+    #log-box::-webkit-scrollbar-track { background: transparent; }
+    #log-box::-webkit-scrollbar-thumb { background: rgba(255,68,68,0.4); border-radius: 2px; }
+
+    .log-line { display: block; }
+    .log-line.info  { color: rgba(255, 200, 200, 0.65); }
+    .log-line.ok    { color: #88ffbb; }
+    .log-line.warn  { color: #ffdd88; }
+    .log-line.err   { color: #ff6666; }
+    .log-line.dim   { color: rgba(255, 160, 160, 0.35); }
 
     /* köşe linki */
     .app-corner {
@@ -238,7 +358,6 @@
   <select id="format">
     <option value="bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio[ext=m4a]/best[height<=1080]">1080p MP4 (video + ses)</option>
     <option value="bestaudio">Sadece Ses (MP3)</option>
-    <option value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio[ext=m4a]/best">Otomatik En İyi Kalite</option>
   </select>
   <button type="button" class="dl-btn" id="btnYT" onclick="playClick(); startDownloadYT()">
     <span class="spinner" id="spnYT"></span>
@@ -262,6 +381,19 @@
       <span class="metric" id="metSize"  style="display:none">Boyut: <span>—</span></span>
       <span class="metric" id="metEta"   style="display:none">Kalan: <span>—</span></span>
     </div>
+    <div class="dl-controls" id="dl-controls">
+      <button type="button" class="ctrl-btn" id="btnPause" onclick="playClick(); togglePause()">Duraklat</button>
+      <button type="button" class="ctrl-btn stop" id="btnStop" onclick="playClick(); stopDownload()">Bitir</button>
+    </div>
+  </div>
+
+  <!-- Süreç logu -->
+  <div class="log-section">
+    <div class="log-header">
+      <span class="log-title">Süreç logu</span>
+      <button type="button" class="log-toggle" id="btnLogToggle" onclick="toggleLog()">Gizle</button>
+    </div>
+    <div id="log-box"></div>
   </div>
 
   <footer class="app-corner">
@@ -271,6 +403,36 @@
   <script>
     const { ipcRenderer, shell } = require('electron');
     const SITE_URL = 'https://media-pull.vercel.app/';
+
+    // ── Log ──────────────────────────────────────────────
+    const logBox = document.getElementById('log-box');
+    const LOG_VISIBLE_KEY = 'mediapull-log-visible';
+    let logVisible = localStorage.getItem(LOG_VISIBLE_KEY) !== '0';
+
+    function applyLogVisibility() {
+      logBox.classList.toggle('hidden', !logVisible);
+      document.getElementById('btnLogToggle').textContent = logVisible ? 'Gizle' : 'Göster';
+    }
+
+    function toggleLog() {
+      logVisible = !logVisible;
+      localStorage.setItem(LOG_VISIBLE_KEY, logVisible ? '1' : '0');
+      applyLogVisibility();
+    }
+
+    applyLogVisibility();
+
+    function logLine(text, type = 'info') {
+      const span = document.createElement('span');
+      span.className = `log-line ${type}`;
+      span.textContent = `[${new Date().toLocaleTimeString('tr-TR')}] ${text}`;
+      logBox.appendChild(span);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function clearLog() {
+      logBox.innerHTML = '';
+    }
 
     // ── Ses ──────────────────────────────────────────────
     function assetUrl(p) { return new URL(p, window.location.href).href; }
@@ -285,6 +447,37 @@
 
     // ── Buton yönetimi ───────────────────────────────────
     let activeBtnId = null;
+    let isPaused = false;
+
+    function showControls() {
+      document.getElementById('dl-controls').classList.add('visible');
+      document.getElementById('btnPause').disabled = false;
+      document.getElementById('btnStop').disabled = false;
+      document.getElementById('btnPause').textContent = 'Duraklat';
+      isPaused = false;
+      document.getElementById('barFill').classList.remove('paused');
+    }
+
+    function hideControls() {
+      document.getElementById('dl-controls').classList.remove('visible');
+      isPaused = false;
+      document.getElementById('barFill').classList.remove('paused');
+    }
+
+    function togglePause() {
+      if (isPaused) {
+        ipcRenderer.send('resume-ytdlp');
+      } else {
+        document.getElementById('btnPause').disabled = true;
+        ipcRenderer.send('pause-ytdlp');
+      }
+    }
+
+    function stopDownload() {
+      document.getElementById('btnPause').disabled = true;
+      document.getElementById('btnStop').disabled = true;
+      ipcRenderer.send('stop-ytdlp');
+    }
 
     function lockBtn(btnId) {
       activeBtnId = btnId;
@@ -307,6 +500,7 @@
       document.getElementById('spnTw').classList.remove('visible');
       document.getElementById('spnYT').classList.remove('visible');
       activeBtnId = null;
+      hideControls();
     }
 
     // ── Progress paneli ──────────────────────────────────
@@ -315,6 +509,7 @@
       downloading: 'Video verisi alınıyor...',
       merging:     'Video ve ses birleştiriliyor...',
       converting:  'Dönüştürülüyor...',
+      paused:      'Duraklatıldı',
       done:        'İndirme tamamlandı!',
     };
 
@@ -323,10 +518,12 @@
     }
 
     function setPhase(phase) {
+      if (phase !== 'paused') lastPhase = phase;
       document.getElementById('dl-phase').textContent = PHASE_LABELS[phase] ?? phase;
     }
 
     const STREAM_LABELS = ['Video indiriliyor...', 'Ses indiriliyor...'];
+    let lastPhase = 'analyzing';
 
     function setBar(percent, instant = false) {
       const fill = document.getElementById('barFill');
@@ -354,6 +551,7 @@
 
     function resetPanel() {
       setBar(0, true);
+      lastPhase = 'analyzing';
       setPhase('analyzing');
       document.getElementById('dl-percent').textContent = '';
       setMetric('metSpeed', 'Hız', null);
@@ -385,11 +583,16 @@
       const url = document.getElementById('twurl').value.trim();
       if (!url || !isTwitterOrXUrl(url)) {
         setStatus('Geçerli bir Twitter veya X bağlantısı gir.', 'error');
+        logLine('Geçersiz veya boş Twitter/X linki.', 'err');
         return;
       }
+      clearLog();
+      logLine('Twitter/X indirmesi başlatılıyor...', 'info');
+      logLine(`URL: ${url}`, 'dim');
       lockBtn('btnTw');
       showPanel();
       resetPanel();
+      showControls();
       ipcRenderer.send('start-ytdlp', url, 'bestvideo+bestaudio/best');
     }
 
@@ -397,26 +600,37 @@
       const url    = document.getElementById('yturl').value.trim();
       const format = document.getElementById('format').value;
       if (!url) {
-        setStatus('Link yok.', 'error'); return;
+        setStatus('Link yok.', 'error');
+        logLine('URL girilmedi.', 'err');
+        return;
       }
       if (!isYoutubeUrl(url)) {
-        setStatus('Geçerli bir YouTube linki gir.', 'error'); return;
+        setStatus('Geçerli bir YouTube linki gir.', 'error');
+        logLine('Geçersiz YouTube linki.', 'err');
+        return;
       }
+      clearLog();
+      logLine('YouTube indirmesi başlatılıyor...', 'info');
+      logLine(`URL: ${url}`, 'dim');
+      logLine(`Format: ${document.getElementById('format').options[document.getElementById('format').selectedIndex].text}`, 'dim');
       lockBtn('btnYT');
       showPanel();
       resetPanel();
+      showControls();
       ipcRenderer.send('start-ytdlp', url, format);
     }
 
     // ── IPC olayları ─────────────────────────────────────
     ipcRenderer.on('download-phase', (_e, phase) => {
       setPhase(phase);
+      logLine(PHASE_LABELS[phase] ?? phase, 'info');
     });
 
     ipcRenderer.on('download-stream', (_e, idx) => {
-      // Yeni akış başladı (ses) — bar'ı anlık sıfırla, glitch yok
       setBar(0, true);
-      setPhase(STREAM_LABELS[idx] ?? 'İndiriliyor...');
+      const label = STREAM_LABELS[idx] ?? 'İndiriliyor...';
+      setPhase(label);
+      logLine(label, 'info');
     });
 
     ipcRenderer.on('download-progress', (_e, data) => {
@@ -430,18 +644,50 @@
       setMetric('metEta',   'Kalan', data.eta ? `${data.eta}` : null);
     });
 
+    ipcRenderer.on('download-log', (_e, line) => {
+      logLine(line, 'dim');
+    });
+
+    ipcRenderer.on('download-paused', () => {
+      isPaused = true;
+      document.getElementById('btnPause').disabled = false;
+      document.getElementById('btnPause').textContent = 'Devam Et';
+      document.getElementById('barFill').classList.add('paused');
+      setPhase('paused');
+      setMetric('metSpeed', 'Hız', null);
+      setMetric('metEta', 'Kalan', null);
+      logLine('İndirme duraklatıldı. Devam Et ile kaldığı yerden sürdürülür.', 'warn');
+    });
+
+    ipcRenderer.on('download-resumed', () => {
+      isPaused = false;
+      document.getElementById('btnPause').textContent = 'Duraklat';
+      document.getElementById('barFill').classList.remove('paused');
+      setPhase(lastPhase);
+      logLine('İndirme devam ediyor.', 'info');
+    });
+
+    ipcRenderer.on('download-cancelled', () => {
+      setStatus('İndirme iptal edildi.', 'error');
+      logLine('İndirme kullanıcı tarafından durduruldu.', 'warn');
+      hideControls();
+      unlockBtns();
+    });
+
     ipcRenderer.on('download-complete', (_e, file) => {
       setBar(100);
       setPhase('done');
       setMetric('metSpeed', 'Hız', null);
       setMetric('metEta',   'Kalan', null);
       setStatus(`${file} indirildi.`, 'success');
+      logLine(`Tamamlandi: ${file}`, 'ok');
       unlockBtns();
       playSuccess();
     });
 
     ipcRenderer.on('download-error', (_e, message) => {
       setStatus(`Hata: ${message}`, 'error');
+      logLine(`Hata: ${message}`, 'err');
       unlockBtns();
     });
   </script>
