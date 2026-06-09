@@ -6,7 +6,8 @@
   "main": "main.js",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run clean && electron-builder --win",
+    "build": "node scripts/build-icon.js && npm run clean && electron-builder --win",
+    "icon:build": "node scripts/build-icon.js",
     "start": "node scripts/patch-icon.js && electron .",
     "dev": "node scripts/patch-icon.js && cross-env MEDIAPULL_DEV=1 electron .",
     "icon:dev": "node scripts/patch-icon.js"
@@ -46,6 +47,7 @@
     "electron": "^28.3.3",
     "electron-builder": "^26.0.12",
     "electron-reload": "^2.0.0-alpha.1",
+    "png-to-ico": "^3.0.1",
     "rcedit": "^5.0.2"
   },
   "dependencies": {
