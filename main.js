@@ -266,53 +266,74 @@ function createWindow() {
   mainWindow.loadFile('index.html');
 }
 
+function createLoadingWindow() {
+  const loadingWin = new BrowserWindow({
+    width: 400,
+    height: 250,
+    frame: false,
+    transparent: true,
+    icon: APP_ICON || undefined,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+  loadingWin.loadFile('loading.html');
+  return loadingWin;
+}
+
 async function checkAndDownloadBinaries() {
   const status = await binariesManager.ensureBinariesExist();
-  
-  if (status.needsDownload) {
-    const loadingWin = new BrowserWindow({
-      width: 400,
-      height: 250,
-      frame: false,
-      transparent: true,
-      icon: APP_ICON || undefined,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
-      }
-    });
+  const updateInfo = status.needsDownload
+    ? null
+    : await binariesManager.checkYtDlpUpdateAvailable();
 
-    loadingWin.loadFile('loading.html');
+  const needsUpdate = updateInfo?.needsUpdate;
+  if (!status.needsDownload && !needsUpdate) return;
 
-    try {
-      if (!status.ytdlpExists) {
-        loadingWin.webContents.send('download-status', 'yt-dlp indiriliyor...');
-        await binariesManager.downloadYtDlp((progress) => {
-          loadingWin.webContents.send('download-progress', { tool: 'yt-dlp', progress });
-        });
-      }
+  const loadingWin = createLoadingWindow();
 
-      if (!status.ffmpegExists) {
-        loadingWin.webContents.send('download-status', 'FFmpeg indiriliyor...');
-        await binariesManager.downloadFfmpeg((progress) => {
-          loadingWin.webContents.send('download-progress', { tool: 'ffmpeg', progress });
-        });
-      }
-
-      const verified = await binariesManager.verifyBinaries();
-      if (verified) {
-        loadingWin.webContents.send('download-status', 'Hazır.');
-        setTimeout(() => {
-          loadingWin.close();
-        }, 1000);
-      } else {
-        throw new Error('Binary doğrulama başarısız');
-      }
-    } catch (error) {
-      loadingWin.close();
-      dialog.showErrorBox('Hata', 'Gerekli araçlar indirilemedi: ' + error.message);
-      app.quit();
+  try {
+    if (!status.ytdlpExists) {
+      loadingWin.webContents.send('download-status', 'yt-dlp indiriliyor...');
+      const ok = await binariesManager.downloadYtDlp((progress) => {
+        loadingWin.webContents.send('download-progress', { tool: 'yt-dlp', progress });
+      });
+      if (!ok) throw new Error('yt-dlp indirilemedi');
     }
+
+    if (!status.ffmpegExists) {
+      loadingWin.webContents.send('download-status', 'FFmpeg indiriliyor...');
+      const ok = await binariesManager.downloadFfmpeg((progress) => {
+        loadingWin.webContents.send('download-progress', { tool: 'ffmpeg', progress });
+      });
+      if (!ok) throw new Error('FFmpeg indirilemedi');
+    }
+
+    if (needsUpdate) {
+      loadingWin.webContents.send(
+        'download-status',
+        `yt-dlp guncelleniyor (${updateInfo.local} -> ${updateInfo.remote})...`
+      );
+      const ok = await binariesManager.downloadYtDlp((progress) => {
+        loadingWin.webContents.send('download-progress', { tool: 'yt-dlp', progress });
+      });
+      if (!ok) {
+        console.warn('yt-dlp guncellemesi basarisiz, mevcut surumle devam ediliyor.');
+        loadingWin.webContents.send('download-status', 'Guncelleme basarisiz, mevcut surum kullaniliyor...');
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    }
+
+    const verified = await binariesManager.verifyBinaries();
+    if (!verified) throw new Error('Binary dogrulama basarisiz');
+
+    loadingWin.webContents.send('download-status', 'Hazir.');
+    setTimeout(() => loadingWin.close(), 1000);
+  } catch (error) {
+    loadingWin.close();
+    dialog.showErrorBox('Hata', 'Gerekli araclar hazirlanamadi: ' + error.message);
+    app.quit();
   }
 }
 
