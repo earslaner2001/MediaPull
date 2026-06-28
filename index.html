@@ -14,22 +14,111 @@
     html, body {
       margin: 0;
       height: 100%;
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
     body {
       font-family: 'Share Tech Mono', monospace;
+      background: #0c0c0e;
+      color: #ff4c4c;
+      display: flex;
+      flex-direction: column;
+      text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
+    }
+
+    /* ── Özel pencere çerçevesi ── */
+    .titlebar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      height: 36px;
+      background: rgba(6, 6, 8, 0.97);
+      border-bottom: 1px solid rgba(255, 68, 68, 0.4);
+      box-shadow: 0 1px 18px rgba(255, 0, 0, 0.12);
+      user-select: none;
+      -webkit-user-select: none;
+      z-index: 100;
+    }
+
+    .titlebar-drag {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      min-width: 0;
+      -webkit-app-region: drag;
+    }
+
+    .titlebar-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      border-radius: 3px;
+    }
+
+    .titlebar-title {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: #ff6666;
+      text-shadow: 0 0 8px rgba(255, 76, 76, 0.6);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .titlebar-controls {
+      display: flex;
+      flex-shrink: 0;
+      -webkit-app-region: no-drag;
+    }
+
+    .win-btn {
+      width: 46px;
+      height: 36px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(255, 180, 180, 0.75);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s, color 0.12s;
+      text-shadow: none;
+      font-family: inherit;
+    }
+    .win-btn:hover {
+      background: rgba(255, 68, 68, 0.18);
+      color: #ffcccc;
+      transform: none;
+      box-shadow: none;
+    }
+    .win-btn.close:hover {
+      background: #c42b1c;
+      color: #fff;
+    }
+    .win-btn svg {
+      width: 10px;
+      height: 10px;
+      fill: currentColor;
+      pointer-events: none;
+    }
+
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px 18px 48px;
+      position: relative;
       background:
         linear-gradient(rgba(12, 12, 14, 0.93), rgba(12, 12, 14, 0.93)),
         url('https://i.pinimg.com/originals/06/60/ef/0660efe82fa3da42ed56eef013171835.gif')
-        no-repeat center center fixed;
+        no-repeat center center;
       background-size: cover;
-      color: #ff4c4c;
-      padding: 14px 18px 48px;
-      max-width: 100%;
-      position: relative;
-      text-shadow: 0 0 5px #ff4c4c, 0 0 10px #ff1c1c;
     }
 
     h2 { font-size: 1.15rem; margin: 0 0 6px; }
@@ -342,8 +431,26 @@
 </head>
 
 <body>
-  <h2>MediaPull</h2>
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar-drag">
+      <img class="titlebar-icon" src="icon.png" alt="" width="16" height="16" />
+      <span class="titlebar-title">MediaPull</span>
+    </div>
+    <div class="titlebar-controls">
+      <button type="button" class="win-btn" id="btnWinMin" title="Küçült" aria-label="Küçült">
+        <svg viewBox="0 0 10 10"><rect y="4.5" width="10" height="1"/></svg>
+      </button>
+      <button type="button" class="win-btn" id="btnWinMax" title="Büyüt" aria-label="Büyüt">
+        <svg id="iconMaximize" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        <svg id="iconRestore" viewBox="0 0 10 10" style="display:none"><rect x="2.5" y="0.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1"/><rect x="0.5" y="2.5" width="7" height="7" fill="rgba(6,6,8,0.97)" stroke="currentColor" stroke-width="1"/></svg>
+      </button>
+      <button type="button" class="win-btn close" id="btnWinClose" title="Kapat" aria-label="Kapat">
+        <svg viewBox="0 0 10 10"><path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>
+      </button>
+    </div>
+  </header>
 
+  <main class="app-content">
   <h3>Twitter / X Video İndir</h3>
   <input type="text" id="twurl" placeholder="Tweet veya video bağlantısını yapıştır" />
   <button type="button" class="dl-btn" id="btnTw" onclick="playClick(); startDownloadTwitter()">
@@ -399,10 +506,43 @@
   <footer class="app-corner">
     <button type="button" class="corner-link" onclick="openSite()">(c) 2026 MediaPull · site</button>
   </footer>
+  </main>
 
   <script>
     const { ipcRenderer, shell } = require('electron');
     const SITE_URL = 'https://media-pull.vercel.app/';
+
+    // ── Pencere kontrolleri ──────────────────────────────
+    const titlebar = document.getElementById('titlebar');
+    const iconMaximize = document.getElementById('iconMaximize');
+    const iconRestore = document.getElementById('iconRestore');
+    const btnWinMax = document.getElementById('btnWinMax');
+
+    function setMaximizedState(maximized) {
+      iconMaximize.style.display = maximized ? 'none' : 'block';
+      iconRestore.style.display = maximized ? 'block' : 'none';
+      btnWinMax.title = maximized ? 'Geri al' : 'Büyüt';
+      btnWinMax.setAttribute('aria-label', maximized ? 'Geri al' : 'Büyüt');
+    }
+
+    document.getElementById('btnWinMin').addEventListener('click', () => {
+      ipcRenderer.send('window-minimize');
+    });
+    btnWinMax.addEventListener('click', () => {
+      ipcRenderer.send('window-maximize');
+    });
+    document.getElementById('btnWinClose').addEventListener('click', () => {
+      ipcRenderer.send('window-close');
+    });
+
+    titlebar.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.titlebar-controls')) return;
+      ipcRenderer.send('window-maximize');
+    });
+
+    ipcRenderer.on('window-maximized', (_e, maximized) => {
+      setMaximizedState(maximized);
+    });
 
     // ── Log ──────────────────────────────────────────────
     const logBox = document.getElementById('log-box');
@@ -479,26 +619,27 @@
       ipcRenderer.send('stop-ytdlp');
     }
 
+    const DL_BTN_IDS = ['btnTw', 'btnYT'];
+    const DL_BTN_META = {
+      btnTw: { lbl: 'lblTw', spn: 'spnTw', label: 'Twitter / X videosunu indir' },
+      btnYT: { lbl: 'lblYT', spn: 'spnYT', label: "YouTube'dan İndir" },
+    };
+
     function lockBtn(btnId) {
       activeBtnId = btnId;
-      ['btnTw','btnYT'].forEach(id => {
-        const btn = document.getElementById(id);
-        btn.disabled = true;
-      });
-      const lbl = document.getElementById(btnId === 'btnTw' ? 'lblTw' : 'lblYT');
-      const spn = document.getElementById(btnId === 'btnTw' ? 'spnTw' : 'spnYT');
-      lbl.textContent = 'İndiriliyor...';
-      spn.classList.add('visible');
+      DL_BTN_IDS.forEach((id) => { document.getElementById(id).disabled = true; });
+      const meta = DL_BTN_META[btnId];
+      document.getElementById(meta.lbl).textContent = 'İndiriliyor...';
+      document.getElementById(meta.spn).classList.add('visible');
     }
 
     function unlockBtns() {
-      ['btnTw','btnYT'].forEach(id => {
+      DL_BTN_IDS.forEach((id) => {
         document.getElementById(id).disabled = false;
+        const meta = DL_BTN_META[id];
+        document.getElementById(meta.lbl).textContent = meta.label;
+        document.getElementById(meta.spn).classList.remove('visible');
       });
-      document.getElementById('lblTw').textContent = 'Twitter / X videosunu indir';
-      document.getElementById('lblYT').textContent = 'YouTube\'dan İndir';
-      document.getElementById('spnTw').classList.remove('visible');
-      document.getElementById('spnYT').classList.remove('visible');
       activeBtnId = null;
       hideControls();
     }
