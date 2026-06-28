@@ -49,7 +49,7 @@ function cleanupPartFiles(logText) {
     } catch { /* ignore */ }
   }
 }
-const APP_SIZE = { width: 540, height: 820, minWidth: 480, minHeight: 720 };
+const APP_SIZE = { width: 540, height: 910, minWidth: 480, minHeight: 800 };
 
 function isTwitterOrXUrl(url) {
   try {
@@ -61,7 +61,10 @@ function isTwitterOrXUrl(url) {
   }
 }
 
-function buildYtDlpArgs(ffmpegPath, outputTemplate, { youtube = false, twitter = false } = {}) {
+function buildYtDlpArgs(ffmpegPath, outputTemplate, {
+  youtube = false,
+  twitter = false
+} = {}) {
   const args = [
     '--ffmpeg-location', ffmpegPath,
     '--windows-filenames',
@@ -112,7 +115,11 @@ function buildDownloadCommand(url, format) {
   const ffmpegPath = binariesManager.getFfmpegPath();
   const urlTrimmed = url.trim();
   const isTwitter = isTwitterOrXUrl(urlTrimmed);
-  const args = buildYtDlpArgs(ffmpegPath, outputTemplate, { youtube: !isTwitter, twitter: isTwitter });
+  const isYoutube = !isTwitter;
+  const args = buildYtDlpArgs(ffmpegPath, outputTemplate, {
+    youtube: isYoutube,
+    twitter: isTwitter
+  });
 
   if (format === 'bestaudio') {
     args.push('-f', 'bestaudio', '-x', '--audio-format', 'mp3');
@@ -149,13 +156,15 @@ function spawnDownload(sender, url, format) {
     paused: false,
     pausing: false,
     cancelled: false,
-    stderrAcc: '',
+    logAcc: '',
+    lastLogLine: '',
     lastPercent: -1,
     streamIndex: 0
   };
   activeDownload = session;
 
   function parseAndSend(chunk) {
+    session.logAcc += chunk;
     const lines = chunk.split('\n');
     for (const line of lines) {
       const trimmed = line.trim();
@@ -193,7 +202,8 @@ function spawnDownload(sender, url, format) {
         sender.send('download-phase', 'analyzing');
       }
 
-      if (!RE_PROGRESS.test(trimmed) && !RE_PROGRESS_DONE.test(trimmed)) {
+      if (!RE_PROGRESS.test(trimmed) && !RE_PROGRESS_DONE.test(trimmed) && trimmed !== session.lastLogLine) {
+        session.lastLogLine = trimmed;
         sender.send('download-log', trimmed);
       }
     }
@@ -205,7 +215,6 @@ function spawnDownload(sender, url, format) {
 
   proc.stderr.on('data', (data) => {
     const text = data.toString();
-    session.stderrAcc += text;
     console.error('yt-dlp stderr:', text);
     parseAndSend(text);
   });
@@ -231,16 +240,16 @@ function spawnDownload(sender, url, format) {
     activeDownload = null;
 
     if (session.cancelled) {
-      cleanupPartFiles(session.stderrAcc);
+      cleanupPartFiles(session.logAcc);
       sender.send('download-cancelled');
       return;
     }
 
     if (code === 0) {
-      const label = extractSavedLabel(session.stderrAcc) || 'Dosya';
+      const label = extractSavedLabel(session.logAcc) || 'Dosya';
       sender.send('download-complete', label);
     } else {
-      const errTail = extractErrorMessage(session.stderrAcc);
+      const errTail = extractErrorMessage(session.logAcc);
       sender.send('download-error', errTail || `yt-dlp çıkış kodu: ${code}`);
     }
   });
@@ -254,6 +263,8 @@ function createWindow() {
     height: APP_SIZE.height,
     minWidth: APP_SIZE.minWidth,
     minHeight: APP_SIZE.minHeight,
+    frame: false,
+    backgroundColor: '#0c0c0e',
     autoHideMenuBar: true,
     icon: APP_ICON || undefined,
     webPreferences: {
@@ -261,6 +272,13 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false
     }
+  });
+
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-maximized', true);
+  });
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-maximized', false);
   });
 
   mainWindow.loadFile('index.html');
@@ -363,15 +381,29 @@ app.whenReady().then(async () => {
 
   ipcMain.on('stop-ytdlp', () => {
     if (!activeDownload) return;
-    const { sender, stderrAcc, proc } = activeDownload;
+    const { sender, logAcc, proc } = activeDownload;
     activeDownload.cancelled = true;
     if (proc) {
       killProcessTree(proc);
       return;
     }
-    cleanupPartFiles(stderrAcc);
+    cleanupPartFiles(logAcc);
     activeDownload = null;
     sender.send('download-cancelled');
+  });
+
+  ipcMain.on('window-minimize', () => {
+    mainWindow?.minimize();
+  });
+
+  ipcMain.on('window-maximize', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+  });
+
+  ipcMain.on('window-close', () => {
+    mainWindow?.close();
   });
 
   ipcMain.on('start-ytdlp', (event, url, format) => {
