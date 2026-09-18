@@ -42,6 +42,28 @@ test('resolution cards leave audio mode', () => {
   assert.equal(F.resolveFormat(back).id, 'yt-4k-avc1');
 });
 
+test('1080p and 4K leave ProRes instead of staying stuck', () => {
+  const prores = F.selectCard(F.createFormatState(), 'prores');
+  const hd = F.selectCard(prores, '1080p');
+  assert.equal(hd.kind, F.KIND.MP4);
+  assert.equal(F.resolveFormat(hd).id, 'yt-1080-avc1');
+  assert.equal(F.isCardActive(hd, 'prores'), false);
+  assert.equal(F.isCardActive(hd, '1080p'), true);
+
+  const uhd = F.selectCard(prores, '4k');
+  assert.equal(F.resolveFormat(uhd).id, 'yt-4k-avc1');
+  assert.equal(F.isCardActive(uhd, '4k'), true);
+  assert.equal(F.isCardActive(prores, '1080p'), false);
+});
+
+test('MP3 card always selects MP3 even if WAV was leftover', () => {
+  const wav = F.selectCard(F.createFormatState(), 'wav');
+  const mp3 = F.selectCard(wav, 'mp3');
+  assert.equal(F.resolveFormat(mp3).id, 'bestaudio');
+  assert.equal(F.isCardActive(mp3, 'mp3'), true);
+  assert.equal(F.isCardActive(mp3, 'wav'), false);
+});
+
 test('URL detectors accept YouTube and X only', () => {
   assert.equal(F.isYoutubeUrl('https://www.youtube.com/watch?v=abc'), true);
   assert.equal(F.isYoutubeUrl('https://youtu.be/abc'), true);

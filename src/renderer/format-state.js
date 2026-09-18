@@ -72,15 +72,16 @@
         next.kind = KIND.MP4;
         break;
       case '4k':
+        next.kind = KIND.MP4;
         next.resolution = RESOLUTION.P4K;
-        if (next.kind === KIND.AUDIO) next.kind = KIND.MP4;
         break;
       case '1080p':
+        next.kind = KIND.MP4;
         next.resolution = RESOLUTION.P1080;
-        if (next.kind === KIND.AUDIO) next.kind = KIND.MP4;
         break;
       case 'audio':
         next.kind = KIND.AUDIO;
+        if (next.audio !== AUDIO.WAV) next.audio = AUDIO.MP3;
         break;
       case 'mp3':
         next.kind = KIND.AUDIO;
@@ -113,13 +114,15 @@
       case 'mp4':
         return state.kind === KIND.MP4;
       case '4k':
-        return state.kind !== KIND.AUDIO && state.resolution === RESOLUTION.P4K;
+        return state.kind === KIND.MP4 && state.resolution === RESOLUTION.P4K;
       case '1080p':
-        return state.kind !== KIND.AUDIO && state.resolution === RESOLUTION.P1080;
+        return state.kind === KIND.MP4 && state.resolution === RESOLUTION.P1080;
       case 'audio':
-      case 'mp3':
-      case 'wav':
         return state.kind === KIND.AUDIO;
+      case 'mp3':
+        return state.kind === KIND.AUDIO && state.audio === AUDIO.MP3;
+      case 'wav':
+        return state.kind === KIND.AUDIO && state.audio === AUDIO.WAV;
       default:
         return false;
     }

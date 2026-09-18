@@ -7,7 +7,8 @@ Tamamen istemci taraflıdır, indirdiğiniz şey doğrudan YouTube'dan alınır,
 
 | Sürüm      | Destek Durumu     |
 |------------|--------------------|
-| v2.3.x     | Aktif destekleniyor |
+| v2.4.x     | Aktif destekleniyor |
+| v2.3.x     | Sınırlı destek     |
 | v2.2.x     | Sınırlı destek     |
 | v2.1.x     | Sınırlı destek     |
 | v2.0.x     | Sınırlı destek     |

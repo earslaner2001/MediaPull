@@ -95,14 +95,8 @@
     return new URL(rel, window.location.href).href;
   }
 
-  const sfxClick = new Audio(assetUrl('../../assets/Web Button Click.mp3'));
   const sfxSuccess = new Audio(assetUrl('../../assets/download succes.mp3'));
-  sfxClick.preload = sfxSuccess.preload = 'auto';
-
-  function playClick() {
-    sfxClick.currentTime = 0;
-    void sfxClick.play().catch(() => {});
-  }
+  sfxSuccess.preload = 'auto';
 
   function playSuccess() {
     sfxSuccess.currentTime = 0;
@@ -278,7 +272,6 @@
   }
 
   async function pasteUrl() {
-    playClick();
     try {
       let text = '';
       if (api?.readClipboard) {
@@ -305,7 +298,6 @@
   }
 
   function startDownload() {
-    playClick();
     const url = els.url.value.trim();
     if (!url) {
       setStatus('Link yok.', 'error');
@@ -403,7 +395,6 @@
   function bindNavigation() {
     document.querySelectorAll('.nav-item').forEach((item) => {
       item.addEventListener('click', () => {
-        playClick();
         switchView(item.dataset.view);
       });
     });
@@ -415,13 +406,12 @@
       'yt-1080-avc1': '1080p',
       'yt-4k-avc1': '4k',
       'yt-prores': 'prores',
-      'bestaudio': 'audio',
+      'bestaudio': 'mp3',
       'yt-wav': 'wav'
     };
 
     document.querySelectorAll('.format-badge').forEach((badge) => {
       badge.addEventListener('click', () => {
-        playClick();
         const formatId = badge.dataset.format;
         const cardId = formatToCard[formatId] || formatId;
         const next = F.selectCard(state.format, cardId);
@@ -449,7 +439,6 @@
         const audioBtn = event.target.closest('[data-audio]');
         if (audioBtn) {
           event.stopPropagation();
-          playClick();
           const next = F.selectCard(state.format, audioBtn.dataset.audio);
           if (F.resolveFormat(next).pro && !requirePro('WAV çıktısı Pro plana özel.')) {
             state.pendingProCard = audioBtn.dataset.audio;
@@ -462,7 +451,6 @@
           return;
         }
 
-        playClick();
         const next = F.selectCard(state.format, card.dataset.card);
         if (F.resolveFormat(next).pro && !requirePro('Bu format Pro plana özel. Lütfen Pro\'ya geç.')) {
           state.pendingProCard = card.dataset.card;
@@ -494,7 +482,6 @@
 
   function bindLicense() {
     els.licenseBadge.addEventListener('click', () => {
-      playClick();
       openLicenseModal(
         state.isPro ? 'Pro lisansın aktif.' : 'Pro özellikler için lisansını etkinleştir.',
         state.isPro ? 'ok' : ''
@@ -505,11 +492,9 @@
       if (event.target.id === 'licenseOverlay') closeLicenseModal();
     });
     document.getElementById('btnLicenseBuy').addEventListener('click', () => {
-      playClick();
       if (api?.openExternal) api.openExternal(state.storeUrl);
     });
     document.getElementById('btnLicenseLogout').addEventListener('click', async () => {
-      playClick();
       const result = await api?.licenseLogout?.();
       applyLicenseUI(result);
       if (result?.ok) {
@@ -523,7 +508,6 @@
       }
     });
     document.getElementById('btnLicenseActivate').addEventListener('click', async () => {
-      playClick();
       const key = els.licenseKey.value.trim();
       if (!key) {
         els.licenseMsg.textContent = 'Lisans anahtarı gir.';
@@ -607,13 +591,11 @@
     });
     if (els.btnLogToggle) {
       els.btnLogToggle.addEventListener('click', () => {
-        playClick();
         clearLog();
         showToast('Konsol logları temizlendi');
       });
     }
     els.btnPause.addEventListener('click', () => {
-      playClick();
       if (state.paused) api?.resumeDownload?.();
       else {
         els.btnPause.disabled = true;
@@ -621,7 +603,6 @@
       }
     });
     els.btnStop.addEventListener('click', () => {
-      playClick();
       els.btnPause.disabled = true;
       els.btnStop.disabled = true;
       if (api?.stopDownload) api.stopDownload();

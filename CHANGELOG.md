@@ -1,5 +1,24 @@
 # Değişiklik günlüğü
 
+## [2.4.0] — 2026-09-18
+
+### Özet
+
+Dikey kart arayüzü yatay indirme yöneticisi (dashboard) düzenine dönüştürüldü. Format seçimi ve pencere boyutu masaüstü kullanımına göre yenilendi.
+
+### Eklenenler
+
+- **Dashboard düzeni:** 220px kenar çubuğu, üst aksiyon çubuğu, indirme kuyruğu tablosu.
+- **Görünümler:** İndirmeler, Formatlar, Konsol Logları, Ayarlar.
+- **Yatay pencere:** Varsayılan 1024×640 (minimum 900×550).
+
+### İyileştirilenler
+
+- **Format seçimi:** ProRes’ten 1080p / 4K’ya geçiş; MP3 badge’i WAV kalıntısını bırakmıyor.
+- **Görsel kimlik:** Mat siyah + neon kırmızı korundu; gereksiz dikey scrollbar kaldırıldı.
+
+[2.4.0]: https://github.com/earslaner2001/Arslaner-Download-Express/releases/tag/v2.4.0
+
 ## [2.3.0] — 2026-09-01
 
 ### Özet
