@@ -238,7 +238,7 @@ function cleanupPartFiles(logText) {
     } catch { /* ignore */ }
   }
 }
-const APP_SIZE = { width: 580, height: 900, minWidth: 500, minHeight: 760 };
+const APP_SIZE = { width: 1024, height: 640, minWidth: 900, minHeight: 550 };
 
 function isTwitterOrXUrl(url) {
   try {

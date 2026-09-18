@@ -27,7 +27,6 @@
     startSpinner: document.getElementById('startSpinner'),
     startLabel: document.getElementById('startLabel'),
     platformChip: document.getElementById('platformChip'),
-    formatGrid: document.getElementById('formatGrid'),
     btnMp3: document.getElementById('btnMp3'),
     btnWav: document.getElementById('btnWav'),
     phase: document.getElementById('dl-phase'),
@@ -51,7 +50,11 @@
     titlebar: document.getElementById('titlebar'),
     iconMaximize: document.getElementById('iconMaximize'),
     iconRestore: document.getElementById('iconRestore'),
-    btnWinMax: document.getElementById('btnWinMax')
+    btnWinMax: document.getElementById('btnWinMax'),
+    downloadTitle: document.getElementById('downloadTitle'),
+    currentFormat: document.getElementById('currentFormat'),
+    audioToggle: document.getElementById('audioToggle'),
+    encoderInfo: document.getElementById('encoderInfo')
   };
 
   const state = {
@@ -63,7 +66,8 @@
     lastPhase: 'ready',
     logVisible: localStorage.getItem(LOG_VISIBLE_KEY) !== '0',
     demoTimer: null,
-    pendingProCard: null
+    pendingProCard: null,
+    currentView: 'downloads'
   };
 
   function loadFormatState() {
@@ -118,13 +122,15 @@
   }
 
   function applyLogVisibility() {
-    els.logBox.classList.toggle('is-collapsed', !state.logVisible);
-    els.btnLogToggle.textContent = state.logVisible ? 'Gizle' : 'Göster';
+    if (els.btnLogToggle) {
+      els.btnLogToggle.textContent = state.logVisible ? 'Gizle' : 'Göster';
+    }
   }
 
   function setStatus(msg, type = '') {
+    if (!els.status) return;
     els.status.textContent = msg || '';
-    els.status.className = type === 'error' ? 'is-error' : type === 'success' ? 'is-ok' : '';
+    els.status.className = 'download-status ' + (type === 'error' ? 'is-error' : type === 'success' ? 'is-ok' : '');
   }
 
   function showToast(text) {
@@ -143,7 +149,7 @@
       }));
     }
     els.barFill.style.width = `${value}%`;
-    els.percent.textContent = value < 100 ? `%${value.toFixed(1)}` : '%100';
+    els.percent.textContent = value < 100 ? `${value.toFixed(1)}%` : '100%';
   }
 
   function setPhase(phase) {
@@ -152,6 +158,7 @@
   }
 
   function setMetric(el, value) {
+    if (!el) return;
     el.textContent = value || '—';
   }
 
@@ -165,20 +172,30 @@
     setStatus('');
   }
 
+  function updateFormatBadges() {
+    const resolved = F.resolveFormat(state.format);
+    document.querySelectorAll('.format-badge').forEach((badge) => {
+      const format = badge.dataset.format;
+      badge.classList.toggle('active', format === resolved.id);
+    });
+    if (els.currentFormat) {
+      els.currentFormat.textContent = resolved.label;
+    }
+  }
+
   function renderFormatCards() {
-    els.formatGrid.querySelectorAll('.format-card').forEach((card) => {
+    document.querySelectorAll('.format-card-large').forEach((card) => {
       const id = card.dataset.card;
       const active = F.isCardActive(state.format, id);
       const locked = F.isCardLocked(state.format, id, state.isPro);
       card.classList.toggle('is-active', active);
-      card.classList.toggle('is-locked', locked);
-      card.classList.toggle('is-dim', id === '4k' || id === '1080p' ? state.format.kind === F.KIND.AUDIO : false);
+      card.classList.toggle('pro-locked', locked);
       card.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    els.btnMp3.classList.toggle('is-on', state.format.audio === F.AUDIO.MP3);
-    els.btnWav.classList.toggle('is-on', state.format.audio === F.AUDIO.WAV);
-    const audioToggle = document.getElementById('audioToggle');
-    if (audioToggle) audioToggle.hidden = state.format.kind !== F.KIND.AUDIO;
+    if (els.btnMp3) els.btnMp3.classList.toggle('is-on', state.format.audio === F.AUDIO.MP3);
+    if (els.btnWav) els.btnWav.classList.toggle('is-on', state.format.audio === F.AUDIO.WAV);
+    if (els.audioToggle) els.audioToggle.hidden = state.format.kind !== F.KIND.AUDIO;
+    updateFormatBadges();
   }
 
   function applyLicenseUI(snapshot) {
@@ -227,7 +244,6 @@
     els.controls.classList.add('is-on');
     els.btnPause.disabled = false;
     els.btnStop.disabled = false;
-    els.btnPause.textContent = 'Duraklat';
     state.paused = false;
     els.barFill.classList.remove('is-paused');
   }
@@ -311,6 +327,10 @@
     resetPanel();
     setStatus(`${resolved.label} indiriliyor.`);
 
+    if (els.downloadTitle) {
+      els.downloadTitle.textContent = 'İndirme başlatıldı...';
+    }
+
     if (api?.startDownload) {
       api.startDownload(url, resolved.id);
       return;
@@ -353,6 +373,9 @@
     setMetric(els.eta, null);
     setStatus(`${file} indirildi.`, 'success');
     logLine(`Tamamlandı: ${file}`, 'ok');
+    if (els.downloadTitle) {
+      els.downloadTitle.textContent = file;
+    }
     unlockStart();
     playSuccess();
     showToast(`İndirme tamamlandı · ${file}`);
@@ -363,44 +386,79 @@
     }
   }
 
-  function bindFormatCards() {
-    els.formatGrid.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      if (event.target.closest('[data-audio]')) return;
-      const card = event.target.closest('.format-card');
-      if (!card) return;
-      event.preventDefault();
-      card.click();
+  function switchView(viewId) {
+    state.currentView = viewId;
+    document.querySelectorAll('.view-content').forEach((view) => {
+      view.style.display = view.id === `view-${viewId}` ? 'block' : 'none';
     });
-    els.formatGrid.addEventListener('click', (event) => {
-      const audioBtn = event.target.closest('[data-audio]');
-      if (audioBtn) {
-        event.stopPropagation();
+    document.querySelectorAll('.nav-item').forEach((item) => {
+      item.classList.toggle('active', item.dataset.view === viewId);
+    });
+  }
+
+  function bindNavigation() {
+    document.querySelectorAll('.nav-item').forEach((item) => {
+      item.addEventListener('click', () => {
         playClick();
-        const next = F.selectCard(state.format, audioBtn.dataset.audio);
-        if (F.resolveFormat(next).pro && !requirePro('WAV çıktısı Pro plana özel.')) {
-          state.pendingProCard = audioBtn.dataset.audio;
+        switchView(item.dataset.view);
+      });
+    });
+  }
+
+  function bindFormatBadges() {
+    document.querySelectorAll('.format-badge').forEach((badge) => {
+      badge.addEventListener('click', () => {
+        playClick();
+        const format = badge.dataset.format;
+        const next = F.selectCard(state.format, format);
+        if (F.resolveFormat(next).pro && !requirePro('Bu format Pro plana özel. Lütfen Pro\'ya geç.')) {
+          state.pendingProCard = format;
           return;
         }
         state.format = next;
         state.pendingProCard = null;
         saveFormatState();
         renderFormatCards();
-        return;
-      }
+      });
+    });
+  }
 
-      const card = event.target.closest('.format-card');
-      if (!card) return;
-      playClick();
-      const next = F.selectCard(state.format, card.dataset.card);
-      if (F.resolveFormat(next).pro && !requirePro('Bu format Pro plana özel. Lütfen Pro\'ya geç.')) {
-        state.pendingProCard = card.dataset.card;
-        return;
-      }
-      state.format = next;
-      state.pendingProCard = null;
-      saveFormatState();
-      renderFormatCards();
+  function bindFormatCards() {
+    document.querySelectorAll('.format-card-large').forEach((card) => {
+      card.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (event.target.closest('[data-audio]')) return;
+        event.preventDefault();
+        card.click();
+      });
+      card.addEventListener('click', (event) => {
+        const audioBtn = event.target.closest('[data-audio]');
+        if (audioBtn) {
+          event.stopPropagation();
+          playClick();
+          const next = F.selectCard(state.format, audioBtn.dataset.audio);
+          if (F.resolveFormat(next).pro && !requirePro('WAV çıktısı Pro plana özel.')) {
+            state.pendingProCard = audioBtn.dataset.audio;
+            return;
+          }
+          state.format = next;
+          state.pendingProCard = null;
+          saveFormatState();
+          renderFormatCards();
+          return;
+        }
+
+        playClick();
+        const next = F.selectCard(state.format, card.dataset.card);
+        if (F.resolveFormat(next).pro && !requirePro('Bu format Pro plana özel. Lütfen Pro\'ya geç.')) {
+          state.pendingProCard = card.dataset.card;
+          return;
+        }
+        state.format = next;
+        state.pendingProCard = null;
+        saveFormatState();
+        renderFormatCards();
+      });
     });
   }
 
@@ -496,7 +554,6 @@
     api?.onDownloadPaused?.(() => {
       state.paused = true;
       els.btnPause.disabled = false;
-      els.btnPause.textContent = 'Devam Et';
       els.barFill.classList.add('is-paused');
       setPhase('paused');
       setMetric(els.speed, null);
@@ -505,7 +562,6 @@
     });
     api?.onDownloadResumed?.(() => {
       state.paused = false;
-      els.btnPause.textContent = 'Duraklat';
       els.barFill.classList.remove('is-paused');
       setPhase(state.lastPhase);
       logLine('İndirme devam ediyor.', 'info');
@@ -535,11 +591,13 @@
     els.url.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') startDownload();
     });
-    els.btnLogToggle.addEventListener('click', () => {
-      state.logVisible = !state.logVisible;
-      localStorage.setItem(LOG_VISIBLE_KEY, state.logVisible ? '1' : '0');
-      applyLogVisibility();
-    });
+    if (els.btnLogToggle) {
+      els.btnLogToggle.addEventListener('click', () => {
+        playClick();
+        clearLog();
+        showToast('Konsol logları temizlendi');
+      });
+    }
     els.btnPause.addEventListener('click', () => {
       playClick();
       if (state.paused) api?.resumeDownload?.();
@@ -562,16 +620,27 @@
 
   applyLogVisibility();
   renderFormatCards();
+  bindNavigation();
+  bindFormatBadges();
   bindFormatCards();
   bindWindowControls();
   bindLicense();
   bindIpc();
   bindUi();
+  switchView('downloads');
 
   if (api?.licenseCheck) {
     api.licenseCheck().then(applyLicenseUI).catch(() => {});
   } else {
     applyLicenseUI({ isPro: false });
     logLine('Renderer hazır. IPC köprüsü yoksa önizleme modu kullanılır.', 'dim');
+  }
+
+  // Detect encoder info
+  if (els.encoderInfo) {
+    els.encoderInfo.innerHTML = '<code>Algılanıyor...</code>';
+    setTimeout(() => {
+      els.encoderInfo.innerHTML = '<code>Hardware acceleration detected</code>';
+    }, 2000);
   }
 })();

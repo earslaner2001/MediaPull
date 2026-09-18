@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Titlebar -->
   <header class="titlebar" id="titlebar">
     <div class="titlebar-drag">
       <img class="titlebar-icon" src="../../icon.png" alt="MediaPull" width="20" height="20">
@@ -31,88 +32,246 @@
     </div>
   </header>
 
-  <main class="app-content">
-    <section class="glass card" aria-labelledby="urlLabel">
-      <span class="card-label" id="urlLabel">Kaynak URL</span>
-      <div class="url-row">
-        <input type="url" id="mediaUrl" placeholder="YouTube veya X / Twitter bağlantısını yapıştır" autocomplete="off" spellcheck="false">
-        <button type="button" class="btn btn-ghost" id="btnPaste">Yapıştır</button>
+  <!-- Dashboard Container -->
+  <div class="dashboard">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="../../icon.png" alt="MediaPull" class="sidebar-logo">
+        <div class="sidebar-brand-text">
+          <strong>MediaPull</strong>
+          <small>v2.3.0</small>
+        </div>
       </div>
-      <button type="button" class="btn btn-primary" id="btnStart">
-        <span class="spinner" id="startSpinner"></span>
-        <span id="startLabel">İndirmeyi Başlat</span>
-      </button>
-      <span class="platform-chip" id="platformChip"></span>
-    </section>
+      
+      <nav class="sidebar-nav">
+        <button type="button" class="nav-item active" data-view="downloads">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          <span>İndirmeler</span>
+        </button>
+        
+        <button type="button" class="nav-item" data-view="formats">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span>Formatlar</span>
+        </button>
+        
+        <button type="button" class="nav-item" data-view="console">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+          <span>Konsol Logları</span>
+        </button>
+        
+        <button type="button" class="nav-item" data-view="settings">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"/>
+          </svg>
+          <span>Ayarlar</span>
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <button type="button" class="corner-link" id="btnSite">
+          <span>(c) 2026 MediaPull</span>
+        </button>
+      </div>
+    </aside>
 
-    <section class="glass card" aria-labelledby="formatLabel">
-      <span class="card-label" id="formatLabel">Çıktı formatı</span>
-      <div class="format-grid" id="formatGrid">
-        <div class="format-card" data-card="prores" role="button" tabindex="0" aria-pressed="false">
-          <span class="format-tag">PRO</span>
-          <strong>Apple ProRes 422 HQ</strong>
-          <small>MOV · kurgu master</small>
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Action Bar -->
+      <section class="action-bar glass">
+        <div class="action-bar-url">
+          <input type="url" id="mediaUrl" placeholder="YouTube veya X / Twitter bağlantısını yapıştır" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn btn-ghost" id="btnPaste">Yapıştır</button>
         </div>
-        <div class="format-card is-active" data-card="mp4" role="button" tabindex="0" aria-pressed="true">
-          <strong>MP4 (H.264)</strong>
-          <small>Editor-ready · AAC</small>
-        </div>
-        <div class="format-card" data-card="4k" role="button" tabindex="0" aria-pressed="false">
-          <span class="format-tag">PRO</span>
-          <strong>4K</strong>
-          <small>2160p H.264</small>
-        </div>
-        <div class="format-card is-active" data-card="1080p" role="button" tabindex="0" aria-pressed="true">
-          <strong>1080p</strong>
-          <small>Full HD H.264</small>
-        </div>
-        <div class="format-card" data-card="audio" role="button" tabindex="0" aria-pressed="false" style="grid-column: 1 / -1">
-          <strong>MP3 / WAV</strong>
-          <small>Sadece ses</small>
-          <div class="audio-toggle" id="audioToggle" hidden>
-            <button type="button" class="is-on" data-audio="mp3" id="btnMp3">MP3</button>
-            <button type="button" data-audio="wav" id="btnWav">WAV <span class="format-tag" style="position:static">PRO</span></button>
+        
+        <div class="action-bar-formats">
+          <div class="format-badge" data-format="yt-1080-avc1" title="1080p H.264">1080p</div>
+          <div class="format-badge active" data-format="yt-4k-avc1" title="4K H.264">
+            <span class="pro-tag">PRO</span> 4K
+          </div>
+          <div class="format-badge" data-format="yt-prores" title="ProRes 422 HQ">
+            <span class="pro-tag">PRO</span> ProRes
+          </div>
+          <div class="format-badge" data-format="bestaudio" title="MP3 Audio">MP3</div>
+          <div class="format-badge" data-format="yt-wav" title="WAV Audio">
+            <span class="pro-tag">PRO</span> WAV
           </div>
         </div>
-      </div>
-    </section>
+        
+        <button type="button" class="btn btn-primary" id="btnStart">
+          <span class="spinner" id="startSpinner"></span>
+          <span id="startLabel">İndirmeyi Başlat</span>
+        </button>
+      </section>
 
-    <section class="glass card" id="dl-panel" aria-labelledby="progressLabel">
-      <span class="card-label" id="progressLabel">İlerleme</span>
-      <div class="progress-head">
-        <span id="dl-phase">Hazır</span>
-        <span id="dl-percent">%0</span>
-      </div>
-      <div class="bar-wrap">
-        <div class="bar-fill" id="barFill"></div>
-      </div>
-      <div class="dl-metrics">
-        <span>Hız: <strong id="metSpeed">—</strong></span>
-        <span>Boyut: <strong id="metSize">—</strong></span>
-        <span>ETA: <strong id="metEta">—</strong></span>
-      </div>
-      <p id="dl-status"></p>
-      <div class="dl-controls" id="dl-controls">
-        <button type="button" class="btn btn-ghost" id="btnPause">Duraklat</button>
-        <button type="button" class="btn btn-ghost" id="btnStop">Bitir</button>
-      </div>
-    </section>
+      <!-- Downloads View (Table) -->
+      <section class="view-content" id="view-downloads">
+        <div class="downloads-header">
+          <h2 class="view-title">İndirme Kuyruğu</h2>
+          <span class="platform-chip" id="platformChip"></span>
+        </div>
+        
+        <div class="downloads-table-wrapper">
+          <table class="downloads-table">
+            <thead>
+              <tr>
+                <th style="width: 35%">Video Başlığı</th>
+                <th style="width: 12%">Format</th>
+                <th style="width: 28%">İlerleme</th>
+                <th style="width: 15%">Hız / ETA</th>
+                <th style="width: 10%">Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody id="downloadsTableBody">
+              <tr class="download-row active" id="currentDownloadRow">
+                <td class="download-title">
+                  <div class="download-title-text" id="downloadTitle">İndirme başlamayı bekliyor...</div>
+                  <div class="download-status" id="dl-status"></div>
+                </td>
+                <td class="download-format">
+                  <span class="format-chip" id="currentFormat">—</span>
+                </td>
+                <td class="download-progress">
+                  <div class="progress-wrapper">
+                    <div class="progress-info">
+                      <span id="dl-phase">Hazır</span>
+                      <span id="dl-percent">0%</span>
+                    </div>
+                    <div class="bar-wrap">
+                      <div class="bar-fill" id="barFill"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="download-meta">
+                  <div class="meta-line"><strong id="metSpeed">—</strong></div>
+                  <div class="meta-line"><strong id="metSize">—</strong></div>
+                  <div class="meta-line"><strong id="metEta">—</strong></div>
+                </td>
+                <td class="download-actions">
+                  <div class="action-buttons" id="dl-controls">
+                    <button type="button" class="action-btn" id="btnPause" title="Duraklat">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="action-btn" id="btnStop" title="Bitir">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <rect x="5" y="5" width="14" height="14"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-    <section class="glass card" aria-labelledby="consoleTitle">
-      <div class="console-head">
-        <span class="console-title" id="consoleTitle">Konsol · yt-dlp &amp; ffmpeg</span>
-        <button type="button" class="btn btn-ghost" id="btnLogToggle" style="height:28px">Gizle</button>
-      </div>
-      <div id="log-box" role="log" aria-live="polite"></div>
-    </section>
-  </main>
+      <!-- Formats View -->
+      <section class="view-content" id="view-formats" style="display: none;">
+        <h2 class="view-title">Çıktı Formatları</h2>
+        
+        <div class="format-grid-large">
+          <div class="format-card-large" data-card="1080p" role="button" tabindex="0">
+            <strong>1080p MP4 (H.264)</strong>
+            <p>Full HD çözünürlük, editörlerde tam uyumluluk. Adobe Premiere Pro ve After Effects için optimize edilmiş AAC ses ve H.264 video.</p>
+            <div class="format-specs">
+              <span>1920x1080</span>
+              <span>H.264</span>
+              <span>AAC 192k</span>
+            </div>
+          </div>
+          
+          <div class="format-card-large pro-locked" data-card="4k" role="button" tabindex="0">
+            <span class="format-tag">PRO</span>
+            <strong>4K MP4 (H.264)</strong>
+            <p>Ultra HD çözünürlük, 2160p video indirimi. Profesyonel projeler için yüksek detay ve netlik.</p>
+            <div class="format-specs">
+              <span>3840x2160</span>
+              <span>H.264 Level 5.2</span>
+              <span>AAC 320k</span>
+            </div>
+          </div>
+          
+          <div class="format-card-large pro-locked" data-card="prores" role="button" tabindex="0">
+            <span class="format-tag">PRO</span>
+            <strong>Apple ProRes 422 HQ</strong>
+            <p>Kayıpsız kurgu master formatı. Color grading ve yüksek kaliteli post-prodüksiyon için ideal.</p>
+            <div class="format-specs">
+              <span>MOV Container</span>
+              <span>ProRes 422 HQ</span>
+              <span>PCM 16-bit</span>
+            </div>
+          </div>
+          
+          <div class="format-card-large" data-card="audio" role="button" tabindex="0">
+            <strong>MP3 / WAV</strong>
+            <p>Sadece ses akışı. MP3 (ücretsiz) veya kayıpsız WAV (PRO) formatında indirme.</p>
+            <div class="audio-toggle" id="audioToggle">
+              <button type="button" class="is-on" data-audio="mp3" id="btnMp3">MP3</button>
+              <button type="button" data-audio="wav" id="btnWav">WAV <span class="format-tag" style="position:static">PRO</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  <footer class="app-corner">
-    <button type="button" class="corner-link" id="btnSite">(c) 2026 MediaPull · site</button>
-  </footer>
+      <!-- Console View -->
+      <section class="view-content" id="view-console" style="display: none;">
+        <div class="console-head">
+          <h2 class="view-title">Konsol · yt-dlp &amp; ffmpeg</h2>
+          <button type="button" class="btn btn-ghost btn-sm" id="btnLogToggle">Temizle</button>
+        </div>
+        
+        <div id="log-box" role="log" aria-live="polite"></div>
+      </section>
 
-  <div class="toast glass" id="toast" role="status"></div>
+      <!-- Settings View -->
+      <section class="view-content" id="view-settings" style="display: none;">
+        <h2 class="view-title">Ayarlar</h2>
+        
+        <div class="settings-group">
+          <h3 class="settings-heading">Genel</h3>
+          <div class="settings-item">
+            <label>İndirme Dizini</label>
+            <div class="settings-value">
+              <code>%USERPROFILE%\Downloads\MediaPullDownloads</code>
+            </div>
+          </div>
+          
+          <div class="settings-item">
+            <label>H.264 Kodlayıcı</label>
+            <div class="settings-value" id="encoderInfo">
+              <code>Algılanıyor...</code>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-group">
+          <h3 class="settings-heading">Hakkında</h3>
+          <div class="settings-item">
+            <label>Versiyon</label>
+            <div class="settings-value">2.3.0</div>
+          </div>
+          <div class="settings-item">
+            <label>Lisans</label>
+            <div class="settings-value">MIT License</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
+  <!-- License Modal -->
   <div class="license-overlay" id="licenseOverlay" hidden>
     <div class="license-modal glass" role="dialog" aria-labelledby="licenseTitle">
       <button type="button" class="modal-close" id="btnLicenseClose" aria-label="Kapat">×</button>
@@ -135,6 +294,8 @@
       <p class="license-msg" id="licenseMsg"></p>
     </div>
   </div>
+
+  <div class="toast glass" id="toast" role="status"></div>
 
   <script src="format-state.js"></script>
   <script src="app.js"></script>
