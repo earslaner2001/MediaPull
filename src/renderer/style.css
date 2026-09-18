@@ -329,6 +329,8 @@ body::after {
 
 /* Action Bar */
 .action-bar {
+  position: relative;
+  z-index: 10;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -392,6 +394,9 @@ body::after {
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
   transition: transform var(--ease), border-color var(--ease), background var(--ease), box-shadow var(--ease);
   white-space: nowrap;
 }
@@ -413,6 +418,7 @@ body::after {
   font-size: 8px;
   color: var(--warn);
   letter-spacing: 0.08em;
+  pointer-events: none;
 }
 
 .btn {
