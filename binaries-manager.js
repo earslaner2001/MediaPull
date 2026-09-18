@@ -2,10 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { app } = require('electron');
-const { exec, execFile } = require('child_process');
+const { execFile } = require('child_process');
 const { promisify } = require('util');
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 const H264_ENCODER_LABELS = {
@@ -109,8 +108,9 @@ class BinariesManager {
     });
   }
 
+  // SECURITY: Get local yt-dlp version safely without command injection
   async getLocalYtDlpVersion() {
-    const { stdout } = await execAsync(`"${this.ytdlpPath}" --version`);
+    const { stdout } = await execFileAsync(this.ytdlpPath, ['--version']);
     return this.normalizeVersion(stdout.split('\n')[0]);
   }
 
@@ -264,10 +264,11 @@ class BinariesManager {
     }
   }
 
+  // SECURITY: Run yt-dlp upgrade safely without command injection
   async runYtDlpUpgrade() {
     if (!fs.existsSync(this.ytdlpPath)) return false;
     try {
-      await execAsync(`"${this.ytdlpPath}" -U`, {
+      await execFileAsync(this.ytdlpPath, ['-U'], {
         timeout: 120000,
         windowsHide: true
       });
@@ -396,10 +397,11 @@ class BinariesManager {
     return this._h264EncoderPromise;
   }
 
+  // SECURITY: Verify binaries safely without command injection
   async verifyBinaries() {
     try {
-      await execAsync(`"${this.ytdlpPath}" --version`);
-      await execAsync(`"${this.ffmpegPath}" -version`);
+      await execFileAsync(this.ytdlpPath, ['--version']);
+      await execFileAsync(this.ffmpegPath, ['-version']);
       return true;
     } catch (error) {
       console.error('Binary dogrulama hatasi:', error);

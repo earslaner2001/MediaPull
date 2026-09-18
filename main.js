@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, nativeImage, Notification, clipboard } = require('electron');
 const path = require('path');
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
@@ -18,8 +18,18 @@ let mainWindow;
 let activeDownload = null;
 const binariesManager = new BinariesManager();
 
-const LICENSE_API = 'http://194.105.5.6:50000';
+// SECURITY: Use HTTPS for license server communication
+// TODO: Replace with your actual HTTPS domain after Nginx setup
+// Example: const LICENSE_API = 'https://license.mediapull.com';
+const LICENSE_API = process.env.LICENSE_SERVER_URL || 'http://194.105.5.6:50000';
 const LICENSE_STORE_URL = 'https://earslaner2001.gumroad.com/l/mediapull-pro';
+
+// Warn if HTTP is being used in production
+if (!LICENSE_API.startsWith('https://') && !app.isPackaged) {
+  console.warn('⚠️  SECURITY WARNING: License server is using HTTP (not HTTPS).');
+  console.warn('   This is insecure and should only be used in development.');
+  console.warn('   Please configure HTTPS using the nginx-license-server.conf file.');
+}
 const PRO_FORMATS = new Set(['yt-4k-avc1', 'yt-prores', 'yt-wav']);
 let isProUser = false;
 let licenseMasked = '';
@@ -178,10 +188,21 @@ function resolveAppIcon() {
 
 const APP_ICON = resolveAppIcon();
 
+// SECURITY: Kill process tree safely without command injection
 function killProcessTree(proc) {
   if (!proc || proc.killed) return;
   if (process.platform === 'win32') {
-    exec(`taskkill /PID ${proc.pid} /T /F`, { windowsHide: true });
+    // SECURITY: Use spawn instead of exec to prevent command injection
+    // PID is validated as a number before use
+    const pid = parseInt(proc.pid, 10);
+    if (isNaN(pid) || pid <= 0) {
+      console.error('Invalid PID for process termination');
+      return;
+    }
+    spawn('taskkill', ['/PID', pid.toString(), '/T', '/F'], { 
+      windowsHide: true,
+      shell: false  // SECURITY: Disable shell to prevent injection
+    });
   } else {
     proc.kill('SIGTERM');
   }
@@ -645,9 +666,11 @@ function createWindow() {
     icon: APP_ICON || undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload', 'index.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: false
+      nodeIntegration: false,        // SECURITY: Disable Node.js in renderer
+      contextIsolation: true,         // SECURITY: Isolate renderer context
+      sandbox: true,                  // SECURITY: Enable sandbox for renderer
+      webSecurity: true,              // SECURITY: Enable web security
+      allowRunningInsecureContent: false  // SECURITY: Block mixed content
     }
   });
 

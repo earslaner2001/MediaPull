@@ -1,4 +1,6 @@
-const { ipcRenderer, shell } = require('electron');
+// SECURITY: Properly isolated preload script
+// Uses contextBridge to safely expose specific APIs to renderer
+const { ipcRenderer, shell, contextBridge } = require('electron');
 
 function on(channel, handler) {
   const wrapped = (_event, ...args) => handler(...args);
@@ -6,6 +8,7 @@ function on(channel, handler) {
   return () => ipcRenderer.removeListener(channel, wrapped);
 }
 
+// SECURITY: All exposed APIs are explicitly defined and sandboxed
 const mediaPullAPI = {
   licenseCheck: () => ipcRenderer.invoke('license:check'),
   licenseActivate: (key) => ipcRenderer.invoke('license:activate', key),
@@ -35,6 +38,7 @@ const mediaPullAPI = {
   readClipboard: () => ipcRenderer.invoke('clipboard:read'),
   notify: (payload) => ipcRenderer.send('app-notify', payload),
   openExternal: (url) => {
+    // SECURITY: Validate URL before opening
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
       return shell.openExternal(url);
     }
@@ -42,11 +46,5 @@ const mediaPullAPI = {
   }
 };
 
-try {
-  const { contextBridge } = require('electron');
-  contextBridge.exposeInMainWorld('mediaPullAPI', mediaPullAPI);
-} catch {
-  window.mediaPullAPI = mediaPullAPI;
-}
-
-window.mediaPullAPI = window.mediaPullAPI || mediaPullAPI;
+// SECURITY: Use contextBridge for proper isolation
+contextBridge.exposeInMainWorld('mediaPullAPI', mediaPullAPI);
