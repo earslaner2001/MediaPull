@@ -21,7 +21,7 @@ const binariesManager = new BinariesManager();
 // SECURITY: Use HTTPS for license server communication
 // TODO: Replace with your actual HTTPS domain after Nginx setup
 // Example: const LICENSE_API = 'https://license.mediapull.com';
-const LICENSE_API = process.env.LICENSE_SERVER_URL || 'http://194.105.5.6:50000';
+const LICENSE_API = process.env.LICENSE_SERVER_URL || 'http://179.61.147.59:50000';
 const LICENSE_STORE_URL = 'https://earslaner2001.gumroad.com/l/mediapull-pro';
 
 // Warn if HTTP is being used in production

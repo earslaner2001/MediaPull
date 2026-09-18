@@ -28,7 +28,7 @@
 
 ### 2. HTTPS Enforcement ✅
 
-**Problem**: License server communication was using unencrypted HTTP (`http://194.105.5.6:50000`), exposing license keys and authentication tokens to network sniffing.
+**Problem**: License server communication was using unencrypted HTTP (`http://179.61.147.59:50000`), exposing license keys and authentication tokens to network sniffing.
 
 **Solution**:
 - Created `nginx-license-server.conf` with full HTTPS configuration
