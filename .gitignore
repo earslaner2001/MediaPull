@@ -6,3 +6,6 @@ binaries
 .DS_Store
 .env
 .vercel
+
+# Sensitive files - OAuth credentials and secrets
+client_secret_*.json
