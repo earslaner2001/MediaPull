@@ -126,6 +126,28 @@ async function activateLicenseOnServer(licenseKey) {
   return data.token;
 }
 
+// SECURITY: Verify license token with server before allowing Pro features
+async function verifyLicenseWithServer(token) {
+  if (!token) return false;
+  try {
+    const res = await fetch(`${LICENSE_API}/api/v1/license/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        machineId,
+        product: 'mediapull'
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+    const data = await parseLicenseResponse(res, 'Lisans doğrulanamadı.');
+    return data.valid === true;
+  } catch (err) {
+    console.error('Lisans doğrulama hatası:', err.message);
+    return false;
+  }
+}
+
 async function deactivateLicenseOnServer() {
   if (!licenseToken) return;
   let res;
@@ -763,6 +785,16 @@ app.whenReady().then(async () => {
     app.dock.setIcon(APP_ICON);
   }
   loadLicenseState();
+  
+  // SECURITY: Verify existing license on app startup
+  if (isProUser && licenseToken) {
+    const isValid = await verifyLicenseWithServer(licenseToken);
+    if (!isValid) {
+      console.warn('Lisans doğrulanamadı, Pro durumu iptal ediliyor.');
+      clearLocalLicense();
+    }
+  }
+  
   await checkAndDownloadBinaries();
   createWindow();
   binariesManager.detectH264Encoder().catch((err) => {
@@ -864,16 +896,29 @@ app.whenReady().then(async () => {
     notification.show();
   });
 
-  ipcMain.on('start-ytdlp', (event, url, format) => {
+  ipcMain.on('start-ytdlp', async (event, url, format) => {
     if (!url || typeof url !== 'string' || url.trim() === '') {
       event.sender.send('download-error', 'Geçerli bir video bağlantısı girilmedi.');
       return;
     }
 
-    if (PRO_FORMATS.has(format) && !isProUser) {
-      event.sender.send('download-error', 'Bu format Pro plana özel. Lütfen lisansını etkinleştir.');
-      event.sender.send('license:required');
-      return;
+    // SECURITY: Server-side license verification for Pro formats
+    if (PRO_FORMATS.has(format)) {
+      if (!isProUser || !licenseToken) {
+        event.sender.send('download-error', 'Bu format Pro plana özel. Lütfen lisansını etkinleştir.');
+        event.sender.send('license:required');
+        return;
+      }
+      
+      // SECURITY: Verify token with server to prevent license.json tampering
+      const isValid = await verifyLicenseWithServer(licenseToken);
+      if (!isValid) {
+        clearLocalLicense();
+        mainWindow?.webContents.send('license:updated', getLicenseSnapshot());
+        event.sender.send('download-error', 'Lisans doğrulanamadı. Lütfen tekrar giriş yap.');
+        event.sender.send('license:required');
+        return;
+      }
     }
 
     if (activeDownload) {
