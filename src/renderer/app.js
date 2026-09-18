@@ -174,10 +174,14 @@
 
   function updateFormatBadges() {
     const resolved = F.resolveFormat(state.format);
+    
+    // Update action bar badges
     document.querySelectorAll('.format-badge').forEach((badge) => {
       const format = badge.dataset.format;
       badge.classList.toggle('active', format === resolved.id);
     });
+    
+    // Update current format display in table
     if (els.currentFormat) {
       els.currentFormat.textContent = resolved.label;
     }
@@ -406,13 +410,23 @@
   }
 
   function bindFormatBadges() {
+    // Map format IDs to card IDs for compatibility
+    const formatToCard = {
+      'yt-1080-avc1': '1080p',
+      'yt-4k-avc1': '4k',
+      'yt-prores': 'prores',
+      'bestaudio': 'audio',
+      'yt-wav': 'wav'
+    };
+
     document.querySelectorAll('.format-badge').forEach((badge) => {
       badge.addEventListener('click', () => {
         playClick();
-        const format = badge.dataset.format;
-        const next = F.selectCard(state.format, format);
+        const formatId = badge.dataset.format;
+        const cardId = formatToCard[formatId] || formatId;
+        const next = F.selectCard(state.format, cardId);
         if (F.resolveFormat(next).pro && !requirePro('Bu format Pro plana özel. Lütfen Pro\'ya geç.')) {
-          state.pendingProCard = format;
+          state.pendingProCard = cardId;
           return;
         }
         state.format = next;
