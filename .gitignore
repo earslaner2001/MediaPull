@@ -1,14 +1,35 @@
-node_modules
-dist
-dist-build-*
-.build-output-path.json
-downloads
-binaries
-*.log
-.DS_Store
-.env
-.vercel
+# Dependencies
+node_modules/
 
-# Sensitive files - OAuth credentials and secrets
+# Electron build output
+dist/
+dist-build-*/
+.build-output-path.json
+
+# Local runtime (yt-dlp, ffmpeg, user downloads)
+binaries/
+downloads/
+
+# Environment & secrets (never commit)
+.env
+.env.*
+!.env.example
+!**/.env.example
+website/.env
 client_secret_*.json
-.secrets/
+credentials.json
+*.pem
+*.p12
+
+# Hosting / tooling
+.vercel
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# yt-dlp partials (if ever outside downloads/)
+*.part
+*.ytdl

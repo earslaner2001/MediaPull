@@ -1,5 +1,23 @@
 # Değişiklik günlüğü
 
+## [2.4.1] — 2026-10-18
+
+### Özet
+
+YouTube indirme (403), 4K çözünürlük, Premiere/VLC uyumu ve Windows kurulum build’i düzeltmeleri.
+
+### Düzeltmeler
+
+- **YouTube 403:** Player client zinciri (`default` → fallback); Deno/EJS ile uyumlu indirme.
+- **4K:** Format seçiminde 1080p H.264’e düşme engellendi; gerçek ≤2160p akışlar seçilir.
+- **H.264 çıktı:** Akıllı remux / kopya / yeniden kodlama; encode hızı ayarları.
+- **NLE / oynatıcı:** MP4 faststart, CFR, kısa GOP (Premiere takılma, VLC seek).
+- **Ara dosyalar:** `.fNNN.mp4` ve merge artıkları indirme sonrası temizlenir.
+- **Proje düzeni:** `src/main`, `src/preload`, `src/renderer`; ikonlar `assets/icons/`.
+- **Build:** `dist` kilitliyse çıktı `dist-build-*`; kökte `dev.bat` / `build-setup.bat`.
+
+[2.4.1]: https://github.com/earslaner2001/MediaPull/releases/tag/v2.4.1
+
 ## [2.4.0] — 2026-09-18
 
 ### Özet
