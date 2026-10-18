@@ -99,12 +99,12 @@ npm install
 npm start
 ```
 
-Geliştirici modu (hot reload): `scripts/dev.bat`
+Geliştirici modu (hot reload): `dev.bat`
 
 Kurulum paketi:
 
 ```bash
-scripts/build-setup.bat
+build-setup.bat
 ```
 
 Çıktı: `dist/`

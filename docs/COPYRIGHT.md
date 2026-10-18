@@ -28,7 +28,7 @@ Aşağıdakiler, açık yazılı izin olmaksızın çoğaltılamaz, dağıtılam
 | Kaynak kod | `src/main/main.js`, `src/main/binaries-manager.js`, `src/preload/index.js`, `src/renderer/`, `scripts/uninstall.nsh` |
 | Arayüz ve marka | Uygulama adı **MediaPull**, arayüz düzeni, metinler |
 | Varlıklar | `assets/` altındaki ses ve diğer medya dosyaları |
-| Yapılandırma | `package.json`, `scripts/build-setup.bat`, Electron Builder ayarları |
+| Yapılandırma | `package.json`, `build-setup.bat`, Electron Builder ayarları |
 | Belgeler | `docs/CHANGELOG.md`, `docs/SECURITY.md`, `docs/README.txt`, bu dosya |
 
 Üçüncü taraf bileşenler (ör. `yt-dlp`, `ffmpeg`, npm bağımlılıkları) kendi lisanslarına tabidir; bu bildirim yalnızca **MediaPull** projesine özgü eserleri kapsar.

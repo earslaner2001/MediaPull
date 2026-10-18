@@ -1,8 +1,9 @@
 @echo off
 setlocal EnableExtensions
-cd /d "%~dp0.."
 
-rem Node bazen Explorer'dan calistirilinca PATH'te olmaz; bilinen dizinler eklenir
+set "MEDIAPULL_ROOT=%~dp0"
+cd /d "%MEDIAPULL_ROOT%"
+
 set "PATH=%PATH%;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LOCALAPPDATA%\Programs;%APPDATA%\npm"
 
 set "NODE_OPTIONS="
@@ -12,6 +13,8 @@ chcp 65001 >nul 2>&1
 echo ============================================
 echo  MediaPull - setup build
 echo ============================================
+echo.
+echo Proje: %CD%
 echo.
 
 where npm >nul 2>&1
@@ -26,11 +29,12 @@ if errorlevel 1 goto fail
 
 echo.
 echo [2/2] electron-builder ...
+echo (dist kilitliyse build dist-build-* klasorune yazilir.)
 call npm run build
 if errorlevel 1 goto fail
 
 echo.
-echo Done. Output folder: "%~dp0dist"
+echo Done. Output: "%MEDIAPULL_ROOT%dist" veya dist-build-* (dist kilitliyse)
 echo.
 pause
 exit /b 0

@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableExtensions
-cd /d "%~dp0.."
+
+set "MEDIAPULL_ROOT=%~dp0"
+cd /d "%MEDIAPULL_ROOT%"
 
 set "PATH=%PATH%;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LOCALAPPDATA%\Programs;%APPDATA%\npm"
 set "NODE_OPTIONS="
@@ -10,6 +12,8 @@ chcp 65001 >nul 2>&1
 echo ============================================
 echo  MediaPull - GELISTIRICI MODU (hot reload)
 echo ============================================
+echo.
+echo Proje: %CD%
 echo.
 echo Herhangi bir .js / .html / .css degisince
 echo uygulama otomatik yeniden baslar.
@@ -22,7 +26,7 @@ if errorlevel 1 (
   goto fail
 )
 
-if not exist "node_modules\" (
+if not exist "%MEDIAPULL_ROOT%node_modules\" (
   echo node_modules yok, npm install calistiriliyor...
   call npm install
   if errorlevel 1 goto fail

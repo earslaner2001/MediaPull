@@ -5,8 +5,8 @@
   "author": "MediaPull",
   "main": "src/main/main.js",
   "scripts": {
-    "clean": "rimraf dist",
-    "build": "node scripts/build-icon.js && npm run clean && electron-builder --win",
+    "clean": "node scripts/clean-dist.js",
+    "build": "node scripts/build-icon.js && npm run clean && node scripts/electron-build-win.js",
     "icon:build": "node scripts/build-icon.js",
     "start": "node scripts/patch-icon.js && electron .",
     "dev": "node scripts/patch-icon.js && cross-env MEDIAPULL_DEV=1 electron .",
