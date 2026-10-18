@@ -25,11 +25,11 @@ Aşağıdakiler, açık yazılı izin olmaksızın çoğaltılamaz, dağıtılam
 
 | Kategori | Örnekler |
 |----------|----------|
-| Kaynak kod | `main.js`, `index.html`, `binaries-manager.js`, `preload.js`, `index.js`, `uninstall.nsh` |
+| Kaynak kod | `src/main/main.js`, `src/main/binaries-manager.js`, `src/preload/index.js`, `src/renderer/`, `scripts/uninstall.nsh` |
 | Arayüz ve marka | Uygulama adı **MediaPull**, arayüz düzeni, metinler |
 | Varlıklar | `assets/` altındaki ses ve diğer medya dosyaları |
-| Yapılandırma | `package.json`, `build-setup.bat`, Electron Builder ayarları |
-| Belgeler | `CHANGELOG.md`, `SECURITY.md`, `README.txt`, bu dosya |
+| Yapılandırma | `package.json`, `scripts/build-setup.bat`, Electron Builder ayarları |
+| Belgeler | `docs/CHANGELOG.md`, `docs/SECURITY.md`, `docs/README.txt`, bu dosya |
 
 Üçüncü taraf bileşenler (ör. `yt-dlp`, `ffmpeg`, npm bağımlılıkları) kendi lisanslarına tabidir; bu bildirim yalnızca **MediaPull** projesine özgü eserleri kapsar.
 

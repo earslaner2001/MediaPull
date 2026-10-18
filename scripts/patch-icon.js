@@ -3,7 +3,7 @@ const fs = require('fs');
 
 const root = path.join(__dirname, '..');
 const electronExe = path.join(root, 'node_modules', 'electron', 'dist', 'electron.exe');
-const iconIco = path.join(root, 'icon.ico');
+const iconIco = path.join(root, 'assets', 'icons', 'icon.ico');
 
 async function main() {
   if (!fs.existsSync(iconIco)) {

@@ -3,7 +3,7 @@
   "version": "2.4.0",
   "description": "Twitter, YouTube ve desteklenen kaynaklardan medya indirme.",
   "author": "MediaPull",
-  "main": "main.js",
+  "main": "src/main/main.js",
   "scripts": {
     "clean": "rimraf dist",
     "build": "node scripts/build-icon.js && npm run clean && electron-builder --win",
@@ -25,7 +25,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "icon.ico",
+      "icon": "assets/icons/icon.ico",
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false
     },
@@ -36,7 +36,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "MediaPull",
-      "include": "uninstall.nsh",
+      "include": "scripts/uninstall.nsh",
       "deleteAppDataOnUninstall": true
     },
     "asar": true

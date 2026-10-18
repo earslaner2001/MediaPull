@@ -6,9 +6,11 @@ const os = require('os');
 const crypto = require('crypto');
 const BinariesManager = require('./binaries-manager');
 
+const PROJECT_ROOT = path.join(__dirname, '..', '..');
+
 if (process.env.MEDIAPULL_DEV === '1') {
-  require('electron-reload')(__dirname, {
-    electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
+  require('electron-reload')(PROJECT_ROOT, {
+    electron: path.join(PROJECT_ROOT, 'node_modules', '.bin', 'electron'),
     awaitWriteFinish: true,
     ignored: /node_modules|dist|binaries|\.git/
   });
@@ -196,11 +198,12 @@ function readClipboardText() {
 }
 
 function resolveAppIcon() {
+  const iconsDir = path.join(PROJECT_ROOT, 'assets', 'icons');
   const candidates = process.platform === 'win32'
     ? ['icon.ico', 'icon.png']
     : ['icon.png', 'icon.ico'];
   for (const name of candidates) {
-    const iconPath = path.join(__dirname, name);
+    const iconPath = path.join(iconsDir, name);
     if (!fs.existsSync(iconPath)) continue;
     const image = nativeImage.createFromPath(iconPath);
     if (!image.isEmpty()) return image;
@@ -687,7 +690,7 @@ function createWindow() {
     autoHideMenuBar: true,
     icon: APP_ICON || undefined,
     webPreferences: {
-      preload: path.join(__dirname, 'preload', 'index.js'),
+      preload: path.join(__dirname, '..', 'preload', 'index.js'),
       nodeIntegration: false,        // SECURITY: Disable Node.js in renderer
       contextIsolation: true,         // SECURITY: Isolate renderer context
       sandbox: true,                  // SECURITY: Enable sandbox for renderer
@@ -703,7 +706,7 @@ function createWindow() {
     mainWindow.webContents.send('window-maximized', false);
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 }
 
 function createLoadingWindow() {
@@ -718,7 +721,7 @@ function createLoadingWindow() {
       contextIsolation: false
     }
   });
-  loadingWin.loadFile('loading.html');
+  loadingWin.loadFile(path.join(__dirname, '..', 'renderer', 'loading.html'));
   return loadingWin;
 }
 

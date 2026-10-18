@@ -9,3 +9,4 @@ binaries
 
 # Sensitive files - OAuth credentials and secrets
 client_secret_*.json
+.secrets/

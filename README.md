@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" width="88" alt="MediaPull">
+  <img src="assets/icons/icon.png" width="88" alt="MediaPull">
 </p>
 
 <h1 align="center">MediaPull</h1>
@@ -99,10 +99,12 @@ npm install
 npm start
 ```
 
+Geliştirici modu (hot reload): `scripts/dev.bat`
+
 Kurulum paketi:
 
 ```bash
-build-setup.bat
+scripts/build-setup.bat
 ```
 
 Çıktı: `dist/`
@@ -115,10 +117,10 @@ Geliştirici modu (`npm run dev`) dosya değişiminde uygulamayı yeniler.
 
 | Belge | Açıklama |
 |-------|----------|
-| [CHANGELOG.md](CHANGELOG.md) | Sürüm notları |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Sürüm notları |
 | [LICENSE](LICENSE) | MIT lisans metni |
-| [COPYRIGHT.md](COPYRIGHT.md) | Telif hakkı bildirimi |
-| [SECURITY.md](SECURITY.md) | Güvenlik politikası |
+| [COPYRIGHT.md](docs/COPYRIGHT.md) | Telif hakkı bildirimi |
+| [SECURITY.md](docs/SECURITY.md) | Güvenlik politikası |
 | [Site](https://media-pull.vercel.app/) | Ürün sayfası |
 
 ---

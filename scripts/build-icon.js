@@ -3,12 +3,10 @@ const fs = require('fs');
 const { PNG } = require('pngjs');
 
 const root = path.join(__dirname, '..');
-const assetSrc = path.join(
-  process.env.USERPROFILE || '',
-  '.cursor', 'projects', 'c-Users-user-Documents-GitHub-Arslaner-Download-Express', 'assets', 'icon.png'
-);
-const outPng = path.join(root, 'icon.png');
-const outIco = path.join(root, 'icon.ico');
+const iconsDir = path.join(root, 'assets', 'icons');
+const outPng = path.join(iconsDir, 'icon.png');
+const outIco = path.join(iconsDir, 'icon.ico');
+const legacyRootPng = path.join(root, 'icon.png');
 
 function readPng(filePath) {
   return new Promise((resolve, reject) => {
@@ -64,7 +62,11 @@ function verifyIco(filePath) {
 }
 
 async function main() {
-  const srcPath = [assetSrc, outPng].find((p) => fs.existsSync(p));
+  if (!fs.existsSync(iconsDir)) {
+    fs.mkdirSync(iconsDir, { recursive: true });
+  }
+
+  const srcPath = [outPng, legacyRootPng].find((p) => fs.existsSync(p));
   if (!srcPath) {
     console.error('Kaynak icon bulunamadi.');
     process.exit(1);

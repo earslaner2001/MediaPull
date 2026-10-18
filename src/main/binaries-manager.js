@@ -19,7 +19,7 @@ class BinariesManager {
   constructor() {
     this.binariesDir = app.isPackaged
       ? path.join(app.getPath('userData'), 'binaries')
-      : path.join(__dirname, 'binaries');
+      : path.join(__dirname, '..', '..', 'binaries');
 
     this.updateStatePath = path.join(app.getPath('userData'), 'ytdlp-update.json');
     this.ytdlpPath = path.join(this.binariesDir, 'yt-dlp.exe');
