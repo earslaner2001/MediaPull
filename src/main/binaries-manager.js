@@ -11,7 +11,7 @@ const H264_ENCODER_LABELS = {
   nvenc: 'NVIDIA NVENC',
   amf: 'AMD AMF',
   qsv: 'Intel Quick Sync',
-  libx264: 'CPU (libx264 veryfast)'
+  libx264: 'CPU (libx264 superfast)'
 };
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 

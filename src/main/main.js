@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog, nativeImage, Notification, clipboard } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileAsync = promisify(execFile);
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
@@ -233,12 +236,67 @@ function killProcessTree(proc) {
   }
 }
 
+function safeUnlink(filePath) {
+  try {
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch (err) {
+    console.warn('Ara dosya silinemedi:', filePath, err.message);
+  }
+}
+
 function cleanupPartFiles(logText) {
   for (const m of logText.matchAll(/\[download\]\s+Destination:\s*(.+)/g)) {
-    const partPath = `${m[1].trim()}.part`;
-    try {
-      if (fs.existsSync(partPath)) fs.unlinkSync(partPath);
-    } catch { /* ignore */ }
+    safeUnlink(`${m[1].trim()}.part`);
+    safeUnlink(`${m[1].trim()}.ytdl`);
+  }
+}
+
+function resolveFinalOutputPath(log) {
+  const convertor = log.match(/\[VideoConvertor\][^\n]*Destination:\s*(.+)/);
+  if (convertor) return path.normalize(convertor[1].trim());
+  const ffmpeg = log.match(/\[ffmpeg\] Destination:\s*(.+)/);
+  if (ffmpeg) return path.normalize(ffmpeg[1].trim());
+  const merger = log.match(/\[Merger\] Merging formats into "(.+?)"/);
+  if (merger) return path.normalize(merger[1].trim());
+  const destLines = [...log.matchAll(/\[download\]\s+Destination:\s*(.+)/g)];
+  if (destLines.length) return path.normalize(destLines[destLines.length - 1][1].trim());
+  return null;
+}
+
+/** Remove yt-dlp intermediates (e.g. .f270.mp4, .m4a, merge .mkv) after successful job. */
+function cleanupDownloadArtifacts(logText) {
+  cleanupPartFiles(logText);
+  const finalPath = resolveFinalOutputPath(logText);
+  if (!finalPath) return;
+
+  const finalNorm = path.normalize(finalPath);
+  const pathsToDrop = new Set();
+
+  for (const m of logText.matchAll(/\[download\]\s+Destination:\s*(.+)/g)) {
+    pathsToDrop.add(path.normalize(m[1].trim()));
+  }
+  const merger = logText.match(/\[Merger\] Merging formats into "(.+?)"/);
+  if (merger) pathsToDrop.add(path.normalize(merger[1].trim()));
+
+  for (const p of pathsToDrop) {
+    if (p !== finalNorm) safeUnlink(p);
+  }
+
+  const dir = path.dirname(finalNorm);
+  const finalBase = path.basename(finalNorm);
+  const stem = finalBase.replace(/\.[^.]+$/, '');
+  if (!fs.existsSync(dir) || !stem) return;
+
+  for (const name of fs.readdirSync(dir)) {
+    if (name === finalBase) continue;
+    if (!name.startsWith(stem)) continue;
+    const isYtFragment = /\.f\d+\./i.test(name);
+    const isAudioSidecar = /\.m4a$/i.test(name) || /\.webm$/i.test(name);
+    const isMergeMkv = name.endsWith('.mkv') && finalBase.toLowerCase().endsWith('.mp4');
+    const isPart = name.endsWith('.part') || name.endsWith('.ytdl');
+    if (isYtFragment || isAudioSidecar || isMergeMkv || isPart) {
+      safeUnlink(path.join(dir, name));
+    }
   }
 }
 const APP_SIZE = { width: 1024, height: 640, minWidth: 900, minHeight: 550 };
@@ -256,21 +314,55 @@ function isTwitterOrXUrl(url) {
 const TW_NLE_FORMAT =
   'best[protocol=https][ext=mp4]/best[ext=mp4]/bestvideo+bestaudio/best';
 
-function videoPlusOriginalAudio(height) {
-  const cap = height ? `[height<=${height}]` : '';
+/** 1080p: prefer native H.264/AAC when available (fast remux path). */
+function videoPlusOriginalAudio1080() {
+  const cap = '[height<=1080]';
+  const avcCap = '[height<=1080][vcodec^=avc1]';
+  return [
+    `bv*${avcCap}+ba[acodec^=mp4a][format_note*=original]`,
+    `bv*${avcCap}+ba[acodec^=mp4a][language=original]`,
+    `bv*${avcCap}+ba[acodec^=mp4a]`,
+    `bv*${avcCap}+ba[format_note*=original]`,
+    `bv*${avcCap}+ba[language=original]`,
+    `bv*${avcCap}+ba`,
+    `bv*${cap}+ba[format_note*=original]`,
+    `bv*${cap}+ba[language=original]`,
+    `bv*${cap}+ba`,
+    `b${cap}`,
+    'bv*+ba',
+    'b'
+  ].join('/');
+}
+
+/** 4K: pick highest res up to 2160 first (VP9/AV1), then H.264 — not 1080p avc1. */
+function videoPlusOriginalAudio4K() {
+  const cap = '[height<=2160]';
   return [
     `bv*${cap}+ba[format_note*=original]`,
     `bv*${cap}+ba[language=original]`,
     `bv*${cap}+ba`,
-    height ? `b${cap}` : null,
+    `bv*${cap}[vcodec^=avc1]+ba[acodec^=mp4a]`,
+    `bv*${cap}[vcodec^=avc1]+ba`,
+    `b${cap}`,
     'bv*+ba',
     'b'
-  ].filter(Boolean).join('/');
+  ].join('/');
 }
 
-const FMT_1080 = videoPlusOriginalAudio(1080);
-const FMT_4K = videoPlusOriginalAudio(2160);
-const FMT_PRORES = videoPlusOriginalAudio(null);
+/** ProRes: maximum quality; never prefer low-res avc1 over 4K sources. */
+function videoPlusOriginalAudioMax() {
+  return [
+    'bv*+ba[format_note*=original]',
+    'bv*+ba[language=original]',
+    'bv*+ba',
+    'bv*[vcodec^=avc1]+ba',
+    'b'
+  ].join('/');
+}
+
+const FMT_1080 = videoPlusOriginalAudio1080();
+const FMT_4K = videoPlusOriginalAudio4K();
+const FMT_PRORES = videoPlusOriginalAudioMax();
 const FMT_AUDIO =
   'bestaudio[format_note*=original]/bestaudio[language=original]/bestaudio/best';
 
@@ -284,37 +376,156 @@ const PPA_WAV = 'ExtractAudio:-c:a pcm_s16le';
 const SOFTWARE_H264_ENCODER = {
   id: 'libx264',
   nvencFamily: null,
-  label: 'CPU (libx264 veryfast)'
+  label: 'CPU (libx264 superfast)'
 };
 
+// Premiere / VLC: CFR + short GOP on encode; faststart on every MP4.
+const NLE_MUX_ENCODE = '-movflags +faststart -fps_mode cfr -brand mp42 -tag:v avc1';
+const NLE_MUX_REMUX = '-movflags +faststart -brand mp42 -tag:v avc1';
+
+function h264GopArgs(encoder, { fourK = false } = {}) {
+  const gop = fourK ? '72' : '60';
+  const kind = encoder?.id || 'libx264';
+  if (kind === 'nvenc') {
+    return `-g ${gop} -no-scenecut 1 -forced-idr 1`;
+  }
+  if (kind === 'amf' || kind === 'qsv') {
+    return `-g ${gop}`;
+  }
+  return `-g ${gop} -keyint_min ${gop} -sc_threshold 0`;
+}
+
+function h264RateCapArgs(fourK) {
+  if (fourK) return '-maxrate 120M -bufsize 240M';
+  return '-maxrate 35M -bufsize 70M';
+}
+
+// NLE-safe H.264 (yuv420p, high profile) with faster encode defaults.
 function h264VideoArgs(encoder, { fourK = false } = {}) {
   const kind = encoder?.id || 'libx264';
   if (kind === 'nvenc') {
     if (encoder.nvencFamily === 'p') {
-      const preset = fourK ? 'p2' : 'p4';
-      return `-c:v h264_nvenc -preset ${preset} -tune hq -rc vbr -cq 19 -b:v 0`;
+      const preset = fourK ? 'p5' : 'p7';
+      const cq = fourK ? '21' : '22';
+      return `-c:v h264_nvenc -preset ${preset} -tune ll -rc vbr -cq ${cq} -b:v 0 -multipass 0 ${h264RateCapArgs(fourK)}`;
     }
-    return '-c:v h264_nvenc -preset fast -rc vbr -cq 19 -b:v 0';
+    return `-c:v h264_nvenc -preset fast -rc vbr -cq 21 -b:v 0 ${h264RateCapArgs(fourK)}`;
   }
   if (kind === 'amf') {
-    const quality = fourK ? 'speed' : 'balanced';
-    return `-c:v h264_amf -quality ${quality} -rc cqp -qp_i 18 -qp_p 20`;
+    return '-c:v h264_amf -quality speed -rc cqp -qp_i 20 -qp_p 22';
   }
   if (kind === 'qsv') {
-    const preset = fourK ? 'veryfast' : 'faster';
-    return `-c:v h264_qsv -preset ${preset} -global_quality 21`;
+    const preset = fourK ? 'faster' : 'veryfast';
+    return `-c:v h264_qsv -preset ${preset} -global_quality 22`;
   }
-  const crf = fourK ? '18' : '19';
-  return `-c:v libx264 -preset veryfast -crf ${crf}`;
+  const crf = fourK ? '20' : '21';
+  return `-c:v libx264 -preset superfast -crf ${crf} -threads 0 ${h264RateCapArgs(fourK)}`;
 }
 
 function buildH264ConvertorPpa(encoder, { level, audioBitrate, fourK = false } = {}) {
   const video = h264VideoArgs(encoder, { fourK });
-  return `VideoConvertor:${video} -pix_fmt yuv420p -profile:v high -level ${level} -c:a aac -b:a ${audioBitrate} -ar 48000`;
+  const gop = h264GopArgs(encoder, { fourK });
+  const audio = `-c:a aac -aac_coder fast -ac 2 -b:a ${audioBitrate} -ar 48000`;
+  return `VideoConvertor:${video} ${gop} -pix_fmt yuv420p -profile:v high -level ${level} ${audio} ${NLE_MUX_ENCODE}`;
 }
 
 function appendVideoPostprocessorArgs(args, videoConvertorPpa) {
   args.push('--postprocessor-args', videoConvertorPpa);
+}
+
+const H264_OUTPUT_RECODE = 'recode';
+const H264_OUTPUT_REMUX = 'remux';
+const H264_OUTPUT_COPY_VIDEO = 'copyVideo';
+
+function h264OutputPlanForFormat(format) {
+  const key = normalizeFormatKey(format);
+  if (key === 'yt-4k-avc1') {
+    return { maxHeight: 2160, level: '5.2', audioBitrate: '320k', fourK: true };
+  }
+  return { maxHeight: 1080, level: '4.2', audioBitrate: '192k', fourK: false };
+}
+
+function isAvc1VideoCodec(vcodec) {
+  const codec = String(vcodec || '');
+  if (!/^avc1/i.test(codec)) return false;
+  if (/avc1\.6/i.test(codec)) return false;
+  return true;
+}
+
+function isMp4aAudioCodec(acodec) {
+  return /^mp4a/i.test(String(acodec || ''));
+}
+
+function streamsFromSimulateJson(info) {
+  if (info?.requested_formats?.length) return info.requested_formats;
+  if (info?.format_id) return [info];
+  return [];
+}
+
+function planYoutubeH264OutputMode(info, format) {
+  const { maxHeight } = h264OutputPlanForFormat(format);
+  const streams = streamsFromSimulateJson(info);
+  const video = streams.find((s) => s.vcodec && s.vcodec !== 'none');
+  const audio = streams.find((s) => s.acodec && s.acodec !== 'none');
+  if (!video || !audio) return H264_OUTPUT_RECODE;
+  if (!isAvc1VideoCodec(video.vcodec)) return H264_OUTPUT_RECODE;
+  if (maxHeight && (video.height || 0) > maxHeight) return H264_OUTPUT_RECODE;
+  if (isMp4aAudioCodec(audio.acodec)) return H264_OUTPUT_REMUX;
+  return H264_OUTPUT_COPY_VIDEO;
+}
+
+function applyH264Mp4Output(args, format, encoder, outputMode) {
+  const plan = h264OutputPlanForFormat(format);
+  const { level, audioBitrate, fourK } = plan;
+
+  if (outputMode === H264_OUTPUT_REMUX) {
+    args.push('--merge-output-format', 'mp4');
+    appendVideoPostprocessorArgs(args, `FFmpegMerger:-c copy ${NLE_MUX_REMUX}`);
+    return;
+  }
+
+  args.push('--merge-output-format', 'mkv');
+  args.push('--recode-video', 'mp4');
+
+  if (outputMode === H264_OUTPUT_COPY_VIDEO) {
+    appendVideoPostprocessorArgs(
+      args,
+      `VideoConvertor:-c:v copy -c:a aac -aac_coder fast -ac 2 -b:a ${audioBitrate} -ar 48000 ${NLE_MUX_REMUX}`
+    );
+    return;
+  }
+
+  appendVideoPostprocessorArgs(args, buildH264ConvertorPpa(encoder, {
+    level,
+    audioBitrate,
+    fourK
+  }));
+}
+
+async function probeYoutubeH264OutputMode(url, format, youtubePlayerClients) {
+  const probeCmd = buildDownloadCommand(url, format, SOFTWARE_H264_ENCODER, {
+    youtubePlayerClients,
+    h264OutputMode: H264_OUTPUT_RECODE
+  });
+  const simArgs = [...probeCmd.args, '--simulate', '-j'];
+  const { stdout } = await execFileAsync(probeCmd.ytDlpPath, simArgs, {
+    windowsHide: true,
+    maxBuffer: 32 * 1024 * 1024,
+    timeout: 120000
+  });
+  const info = JSON.parse(stdout);
+  return planYoutubeH264OutputMode(info, format);
+}
+
+function logLineForH264OutputMode(mode) {
+  switch (mode) {
+    case H264_OUTPUT_REMUX:
+      return 'Kaynak H.264 + AAC — doğrudan MP4 birleştirme (yeniden kodlama yok).';
+    case H264_OUTPUT_COPY_VIDEO:
+      return 'Kaynak H.264 — video kopyalanıyor, ses AAC\'e dönüştürülüyor.';
+    default:
+      return 'H.264 NLE uyumu için yeniden kodlama uygulanacak.';
+  }
 }
 
 function normalizeFormatKey(format) {
@@ -330,7 +541,11 @@ function normalizeFormatKey(format) {
   return 'yt-1080-avc1';
 }
 
-function applyFormatArgs(args, format, { isTwitter = false, encoder = SOFTWARE_H264_ENCODER } = {}) {
+function applyFormatArgs(args, format, {
+  isTwitter = false,
+  encoder = SOFTWARE_H264_ENCODER,
+  h264OutputMode = H264_OUTPUT_RECODE
+} = {}) {
   switch (normalizeFormatKey(format)) {
     case 'bestaudio':
       args.push('-f', FMT_AUDIO);
@@ -354,25 +569,23 @@ function applyFormatArgs(args, format, { isTwitter = false, encoder = SOFTWARE_H
     case 'yt-4k-avc1':
       args.push('-f', FMT_4K);
       args.push('-S', 'lang,res:2160,fps,br');
-      args.push('--merge-output-format', 'mkv');
-      args.push('--recode-video', 'mp4');
-      appendVideoPostprocessorArgs(args, buildH264ConvertorPpa(encoder, {
-        level: '5.2',
-        audioBitrate: '320k',
-        fourK: true
-      }));
+      applyH264Mp4Output(args, format, encoder, h264OutputMode);
       break;
     case 'yt-1080-avc1':
     default:
       args.push('-f', isTwitter ? TW_NLE_FORMAT : FMT_1080);
       if (!isTwitter) args.push('-S', 'lang,res:1080,fps,br');
-      args.push('--merge-output-format', 'mkv');
-      args.push('--recode-video', 'mp4');
-      appendVideoPostprocessorArgs(args, buildH264ConvertorPpa(encoder, {
-        level: '4.2',
-        audioBitrate: '192k',
-        fourK: false
-      }));
+      if (isTwitter) {
+        args.push('--merge-output-format', 'mkv');
+        args.push('--recode-video', 'mp4');
+        appendVideoPostprocessorArgs(args, buildH264ConvertorPpa(encoder, {
+          level: '4.2',
+          audioBitrate: '192k',
+          fourK: false
+        }));
+      } else {
+        applyH264Mp4Output(args, format, encoder, h264OutputMode);
+      }
       break;
   }
 }
@@ -389,9 +602,22 @@ function resolveDenoPath() {
   return null;
 }
 
+// default: full DASH/m3u8 formats (true 1080p/4K). mweb alone often falls back to progressive 360p (format 18).
+const YOUTUBE_PLAYER_CLIENT_CHAIN = [
+  'default',
+  'web_creator,web_embedded,android_vr',
+  'mweb,web'
+];
+
+function youtubePlayerClientAt(chainIndex) {
+  const idx = Number.isFinite(chainIndex) ? chainIndex : 0;
+  return YOUTUBE_PLAYER_CLIENT_CHAIN[idx] ?? YOUTUBE_PLAYER_CLIENT_CHAIN[0];
+}
+
 function buildYtDlpArgs(ffmpegPath, outputTemplate, {
   youtube = false,
-  twitter = false
+  twitter = false,
+  youtubePlayerClients = youtubePlayerClientAt(0)
 } = {}) {
   const args = [
     '--ffmpeg-location', ffmpegPath
@@ -403,6 +629,7 @@ function buildYtDlpArgs(ffmpegPath, outputTemplate, {
       args.push('--js-runtimes', `deno:${denoPath}`);
     }
     args.push('--remote-components', 'ejs:github');
+    args.push('--extractor-args', `youtube:player_client=${youtubePlayerClients}`);
   }
 
   args.push(
@@ -411,11 +638,11 @@ function buildYtDlpArgs(ffmpegPath, outputTemplate, {
     '--rm-cache-dir',
     '--no-cache-dir',
     '--windows-filenames',
+    '--no-keep-video',
     '--continue',
     '--retries', '10',
     '--fragment-retries', '10',
     '--encoding', 'utf-8',
-    '--extractor-args', 'youtube:player_client=web_creator,web_embedded,android_vr',
     '-o', outputTemplate
   );
 
@@ -496,7 +723,10 @@ function isH264VideoFormat(format) {
   return key === 'yt-1080-avc1' || key === 'yt-4k-avc1';
 }
 
-function buildDownloadCommand(url, format, encoder = SOFTWARE_H264_ENCODER) {
+function buildDownloadCommand(url, format, encoder = SOFTWARE_H264_ENCODER, {
+  youtubePlayerClients = youtubePlayerClientAt(0),
+  h264OutputMode = H264_OUTPUT_RECODE
+} = {}) {
   const downloadsDir = path.join(os.homedir(), 'Downloads', 'MediaPullDownloads');
   if (!fs.existsSync(downloadsDir)) {
     fs.mkdirSync(downloadsDir, { recursive: true });
@@ -510,10 +740,11 @@ function buildDownloadCommand(url, format, encoder = SOFTWARE_H264_ENCODER) {
   const isYoutube = !isTwitter;
   const args = buildYtDlpArgs(ffmpegPath, outputTemplate, {
     youtube: isYoutube,
-    twitter: isTwitter
+    twitter: isTwitter,
+    youtubePlayerClients: isYoutube ? youtubePlayerClients : undefined
   });
 
-  applyFormatArgs(args, format, { isTwitter, encoder });
+  applyFormatArgs(args, format, { isTwitter, encoder, h264OutputMode });
   args.push(urlTrimmed);
 
   return { ytDlpPath, args, encoder };
@@ -522,12 +753,32 @@ function buildDownloadCommand(url, format, encoder = SOFTWARE_H264_ENCODER) {
 const RE_PROGRESS = /(\d{1,3}\.\d+)%\s+of\s+~?\s*([\d.]+\s*\S+)\s+at\s+([\d.]+\s*\S+)(?:\s+ETA\s+(\d{2}:\d{2}))?/;
 const RE_PROGRESS_DONE = /100%\s+of\s+~?\s*([\d.]+\s*\S+)/;
 
-async function spawnDownload(sender, url, format, { retriedAfterUpdate = false } = {}) {
+async function spawnDownload(sender, url, format, {
+  retriedAfterUpdate = false,
+  clientChainIndex = 0
+} = {}) {
   try {
+    if (!isTwitterOrXUrl(url)) {
+      await binariesManager.ensureDeno();
+    }
+    const youtubePlayerClients = youtubePlayerClientAt(clientChainIndex);
     const encoder = isH264VideoFormat(format)
       ? await binariesManager.detectH264Encoder()
       : SOFTWARE_H264_ENCODER;
-    const { ytDlpPath, args } = buildDownloadCommand(url, format, encoder);
+
+    let h264OutputMode = H264_OUTPUT_RECODE;
+    if (!isTwitterOrXUrl(url) && isH264VideoFormat(format)) {
+      try {
+        h264OutputMode = await probeYoutubeH264OutputMode(url, format, youtubePlayerClients);
+      } catch (err) {
+        console.warn('YouTube çıktı planı önizlemesi başarısız:', err.message);
+      }
+    }
+
+    const { ytDlpPath, args } = buildDownloadCommand(url, format, encoder, {
+      youtubePlayerClients,
+      h264OutputMode
+    });
     console.log('YT-DLP:', ytDlpPath, args.join(' '));
 
     const proc = spawn(ytDlpPath, args, {
@@ -544,6 +795,7 @@ async function spawnDownload(sender, url, format, { retriedAfterUpdate = false }
     pausing: false,
     cancelled: false,
     retriedAfterUpdate,
+    clientChainIndex,
     logAcc: '',
     lastLogLine: '',
     lastPercent: -1,
@@ -606,7 +858,10 @@ async function spawnDownload(sender, url, format, { retriedAfterUpdate = false }
 
   sender.send('download-phase', 'analyzing');
   if (isH264VideoFormat(format) && encoder?.label) {
-    sender.send('download-log', `H.264 kodlayıcı: ${encoder.label}`);
+    if (h264OutputMode === H264_OUTPUT_RECODE) {
+      sender.send('download-log', `H.264 kodlayıcı: ${encoder.label}`);
+    }
+    sender.send('download-log', logLineForH264OutputMode(h264OutputMode));
   }
 
   proc.stdout.on('data', (data) => { parseAndSend(data.toString('utf-8')); });
@@ -644,8 +899,22 @@ async function spawnDownload(sender, url, format, { retriedAfterUpdate = false }
 
     if (code === 0) {
       activeDownload = null;
+      cleanupDownloadArtifacts(session.logAcc);
       const label = extractSavedLabel(session.logAcc) || 'Dosya';
       sender.send('download-complete', label);
+    } else if (
+      isYoutubeForbidden(session.logAcc) &&
+      !isTwitterOrXUrl(url) &&
+      session.clientChainIndex + 1 < YOUTUBE_PLAYER_CLIENT_CHAIN.length
+    ) {
+      session.proc = null;
+      const nextIndex = session.clientChainIndex + 1;
+      sender.send('download-log', `YouTube 403: alternatif istemci deneniyor (${nextIndex + 1}/${YOUTUBE_PLAYER_CLIENT_CHAIN.length})…`);
+      sender.send('download-phase', 'analyzing');
+      spawnDownload(sender, url, format, {
+        retriedAfterUpdate: session.retriedAfterUpdate,
+        clientChainIndex: nextIndex
+      });
     } else if (
       isYoutubeForbidden(session.logAcc) &&
       !session.retriedAfterUpdate
@@ -663,7 +932,10 @@ async function spawnDownload(sender, url, format, { retriedAfterUpdate = false }
             return;
           }
           if (activeDownload !== session) return;
-          spawnDownload(sender, url, format, { retriedAfterUpdate: true });
+          spawnDownload(sender, url, format, {
+            retriedAfterUpdate: true,
+            clientChainIndex: 0
+          });
         });
     } else {
       activeDownload = null;
