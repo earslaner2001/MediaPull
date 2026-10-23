@@ -356,7 +356,9 @@
 
   function applyProgress(raw) {
     const data = F.normalizeProgress(raw);
-    setBar(data.percent);
+    if (state.lastPhase !== 'converting') {
+      setBar(data.percent);
+    }
     setMetric(els.speed, F.displaySpeed(data.speed));
     setMetric(els.size, data.size);
     setMetric(els.eta, F.displayEta(data.eta));
@@ -541,6 +543,11 @@
         setStatus('Adobe uyumlu H.264 kodlanıyor. GPU varsa bu adım çok daha kısa sürer.');
         setMetric(els.speed, null);
         setMetric(els.eta, null);
+        setBar(100);
+        els.percent.textContent = 'İşleniyor';
+      }
+      if (phase === 'merging') {
+        els.percent.textContent = 'İşleniyor';
       }
     });
     api?.onDownloadStream?.((idx) => {
